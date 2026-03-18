@@ -43,3 +43,6 @@ The sleeves will have structure:
 The tool will estimate the amount of yarn is needed based on yarn density.
 
 There will be downloadable knitting instructions. This is mostly based on template that will just updated with the yarns selected for the sweater.
+
+## Implementation details
+Sweater planner will run in browser. It will be implemented using react. At first phase it does not need to have backend server but that can be added at later phase. The backend would provide the yarn catalog and different sweater models. But at first phase these can be hardcoded to the planner application but abstracted so that it could be replaced with real backend service later without fully rewriting the entire application.
