@@ -41,7 +41,7 @@ committable increment. Later tasks will be refined as implementation progresses.
 
 ## Phase 2 — Types and Service Layer
 
-- [ ] **T006** — Shared TypeScript types
+- [x] **T006** — Shared TypeScript types
   - `src/types/index.ts`: all types from `02-data-models.md`
     (`Brand`, `YarnType`, `YarnColor`, `YarnSlot`, `SelectedYarns`,
     `PatternGrid`, `PatternConfig`, `PatternArea`, `SweaterSize`,
