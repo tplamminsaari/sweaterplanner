@@ -5,7 +5,7 @@
 ```
 src/
 ├── main.tsx
-├── App.tsx                        # Three-panel shell
+├── App.tsx                        # App toolbar + three-panel shell
 ├── index.css                      # CSS variables, global styles
 │
 ├── services/                      # Backend abstraction layer
@@ -34,6 +34,7 @@ src/
 │
 └── components/
     ├── layout/
+    │   ├── AppToolbar.tsx          # Size selector, Export, Import, Download Instr.
     │   ├── ThreePanelLayout.tsx
     │   ├── LeftPanel.tsx
     │   ├── CenterPanel.tsx
@@ -50,8 +51,8 @@ src/
     │   ├── PatternDesigner.tsx     # Root of center panel
     │   ├── PatternAreaTabs.tsx     # Tab: shirtTail / sleeveOpening / yoke
     │   ├── PatternGrid.tsx         # Canvas-based grid editor
-    │   ├── GridSizeControls.tsx    # Row/col sliders or inputs
-    │   └── DrawingToolbar.tsx      # Tool selector + fill-all button
+    │   ├── GridSizeControls.tsx    # Row/col sliders or inputs (disabled for yoke)
+    │   └── DrawingToolbar.tsx      # Tool selector (freehand / line / eraser) + fill-all
     │
     └── sweater-preview/
         ├── SweaterPreview.tsx      # Root of right panel
@@ -75,10 +76,13 @@ src/
 - On cell paint: dispatches to pattern-store
 
 ### `DrawingToolbar.tsx`
-- Tool selector: **Freehand** | **Line**
-- **Fill Pattern** button: fills all cells with the active yarn slot color.
+- Tool selector: **Freehand** | **Line** | **Eraser**
+  - Eraser sets cell value to `0` (empty) on mouse drag, same pointer event logic as freehand.
+- **Fill Pattern** button: fills all paintable cells with the active yarn slot color.
   - If any cells are already painted (non-empty), shows a confirmation dialog before proceeding.
   - Dispatches `fillPattern(area, slotIndex)` to pattern-store.
+  - For the yoke area, only active (non-skipped) cells are filled.
+- **GridSizeControls** are hidden (or disabled) when the active area is `yoke` (fixed 12×56).
 
 ### `SweaterCanvas.tsx`
 - Receives full `AppState` (patterns + yarn slots + geometry)
@@ -87,9 +91,15 @@ src/
 
 ### `useCanvasGrid` hook
 ```
-Input:  canvasRef, grid: PatternGrid, colorMap: string[], cellSize: number
+Input:  canvasRef, grid: PatternGrid, colorMap: string[], cellSize: number,
+        inactiveCells?: Set<`${row},${col}`>   // cells that are non-paintable (yoke skips)
 Output: { repaint: () => void }
 Side effect: draws grid on canvas, attaches pointer event handlers
+
+Inactive cells are rendered with a distinct style (e.g., dark cross-hatch fill).
+Pointer events on inactive cells are ignored — they cannot be painted or erased.
+The caller (PatternGrid) derives `inactiveCells` from YOKE_COLUMN_SKIP_SCHEDULE
+when the active area is "yoke"; passes undefined for shirtTail and sleeveOpening.
 ```
 
 ### `useSweaterRenderer` hook
@@ -102,8 +112,14 @@ Side effect: renders sweater silhouette + texture-mapped patterns
 ## State Flow
 
 ```
-User clicks color in ColorPalette
-  → yarn-store: setActiveSlot(slotIndex)
+User clicks a slot in YarnSlots
+  → yarn-store: setActiveSlotIndex(slotIndex)   // switches which slot is being painted
+
+User clicks a color in ColorPalette
+  → yarn-store: assignColorToSlot(activeSlotIndex, yarnColorId)  // assigns color to active slot
+
+User clicks a slot twice (toggle) or presses clear
+  → yarn-store: clearSlot(slotIndex)            // sets yarnColorId to null
 
 User clicks/drags PatternGrid cell
   → pattern-store: setCellColor(area, row, col, activeSlotIndex)
@@ -125,4 +141,7 @@ User changes sweater size
 
 - Pattern grid: cell (row, col), row 0 = bottom of knitting, drawn flipped (row 0 at canvas bottom)
 - Sweater preview: origin top-left, Y increases downward
-- Yoke taper: each pattern row is stretched/compressed horizontally based on its position in the yoke (linear interpolation between neckline width and body width)
+- Yoke taper: the yoke is a **stepped trapezoid** — width is constant within each column-skip band,
+  then jumps at threshold rows (6 discrete steps). Each pattern row is rendered at the pixel width
+  corresponding to its band (not smoothly interpolated). Each cell in a row is stretched uniformly
+  to fill the row's width.

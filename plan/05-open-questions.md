@@ -79,3 +79,31 @@ _Import replaces the current project with a confirmation prompt._
 
 ✅ **Q16. Multiple projects?**
 _Answer: No — single active project, auto-saved to localStorage._
+
+---
+
+## Pattern Designer
+
+✅ **Q17. Eraser tool included?**
+_Answer: Yes. Eraser sets cells to 0 (empty), same pointer event logic as freehand._
+
+✅ **Q18. Grid resize behavior — what happens to existing cells?**
+_Answer: Cells within the new bounds are preserved. Cells outside the new bounds are discarded
+(no undo). New cells are initialized to 0 (empty). This is the simplest correct behavior._
+
+---
+
+## Sweater Preview
+
+✅ **Q19. Canvas responsiveness — does the preview redraw on window resize?**
+_Answer: No for MVP. Both canvases use fixed pixel sizes (pattern grid: computed from cell size;
+sweater preview: fixed ~300×500px). Revisit if layout becomes responsive._
+
+---
+
+## Yoke
+
+❓ **Q20. `YOKE_ROW_MIN_SIZE` — which rows are skipped per size?**
+_Needs domain input. The data structure is defined in `02-data-models.md`. This must be
+filled in before Phase 4 (yoke grid editor) and Phase 5 (sweater preview) can be fully
+implemented. Blocker for the yoke row-skip rendering and correctly proportioned preview._

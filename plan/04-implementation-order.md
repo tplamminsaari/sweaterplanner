@@ -12,10 +12,11 @@ The implementation is split into phases. Each phase produces something runnable 
 2. Install dependencies: `zustand`, `immer`
 3. Set up `tsconfig.json` (strict, verbatimModuleSyntax)
 4. CSS custom properties for dark theme (colors, spacing, typography)
-5. `ThreePanelLayout` with three fixed/flex panels (no content yet)
-6. Global reset and base styles
+5. `AppToolbar` (placeholder buttons, size dropdown hardcoded to "M")
+6. `ThreePanelLayout` with three fixed/flex panels (no content yet)
+7. Global reset and base styles
 
-**Deliverable:** Three empty labeled panels visible in the browser.
+**Deliverable:** App toolbar + three empty labeled panels visible in the browser.
 
 ---
 
@@ -56,11 +57,14 @@ The implementation is split into phases. Each phase produces something runnable 
 2. `useCanvasGrid` hook — renders grid, handles mouse paint events
 3. `PatternGrid` component
 4. `PatternAreaTabs` — switch between shirtTail / sleeveOpening / yoke
-5. `GridSizeControls` — adjust rows/cols within allowed ranges
-6. `DrawingToolbar` — shows active yarn slot color, possibly eraser
-7. Wire: active slot color from yarn-store → grid painting
+5. `GridSizeControls` — adjust rows/cols within allowed ranges; hidden for yoke
+6. `DrawingToolbar` — freehand, line (Bresenham), eraser, fill-all
+7. Wire: active slot color from yarn-store → grid painting; inactive cells from
+   `YOKE_COLUMN_SKIP_SCHEDULE` passed to `useCanvasGrid` when area is yoke
 
-**Deliverable:** All three patterns editable, persisted, with correct grid constraints.
+> ⚠️ `YOKE_ROW_MIN_SIZE` must be filled in before this phase is complete (see Q20).
+
+**Deliverable:** All three patterns editable, persisted, with correct grid constraints and yoke inactive-cell rendering.
 
 ---
 
@@ -70,7 +74,7 @@ The implementation is split into phases. Each phase produces something runnable 
 
 1. `src/utils/sweater-geometry.ts` — compute pixel geometry from measurements
 2. `sweater-store` (Zustand + Immer + persist), with derived geometry
-3. Size selector UI (XS–XXL dropdown or presets)
+3. Wire `AppToolbar` size selector → `sweater-store.setSize(size)`
 4. `SweaterCanvas` / `useSweaterRenderer` — draw body + sleeves as flat shapes
 5. Solid-color fill (no pattern yet), using slot 1 as main color
 
@@ -110,7 +114,8 @@ The implementation is split into phases. Each phase produces something runnable 
 1. `ProjectExport` type — versioned JSON schema
 2. Export: serialize current state → download as `.json` file
 3. Import: file picker → parse JSON → validate schema version → confirm dialog → replace state
-4. Export/Import buttons in the app toolbar or a project menu
+   - Show user-facing error message if file is not valid JSON or has an unrecognised schema version
+4. Wire Export / Import buttons already present in `AppToolbar`
 
 **Deliverable:** Round-trip save/load of the full design (yarn slots + patterns + size).
 
@@ -122,7 +127,7 @@ The implementation is split into phases. Each phase produces something runnable 
 
 1. Define instruction template with variable substitution
 2. Fill in: yarn names/colors, stitch counts per size, which yoke rows to skip, needle size
-3. Download button triggers browser file download
+3. Wire "Download Instructions" button in `AppToolbar` → triggers browser file download
 4. Content spec to be defined in the user story
 
 **Deliverable:** Downloaded .txt document with correct yarn and pattern info.

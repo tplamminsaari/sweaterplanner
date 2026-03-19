@@ -11,10 +11,25 @@ A browser-based tool for planning Icelandic-style sweaters. The user selects yar
 - **HTML Canvas API** — pattern grids and sweater preview rendering
 - **CSS custom properties** — dark theme
 
+## App Toolbar (top bar)
+
+A narrow fixed bar spanning the full width above the three panels:
+
+- **Size selector** — dropdown for S → 4XL (affects geometry + yoke row skipping)
+- **Export** button — downloads design as `.json`
+- **Import** button — opens file picker, replaces design after confirmation
+- **Download Instructions** button — downloads `.txt` knitting instructions
+
+This keeps global actions out of the three panels and gives them a stable location.
+
+---
+
 ## Three-Panel Layout
 
 ```
 ┌──────────────────────────────────────────────────────────┐
+│  [Size: M ▾]   [Export]  [Import]  [Download Instr.]    │  ← App Toolbar
+├──────────────────────────────────────────────────────────┤
 │  Yarn Catalog  │     Pattern Designer     │   Sweater    │
 │   (260px)      │      (flex, center)      │  Preview     │
 │                │                          │  (320px)     │

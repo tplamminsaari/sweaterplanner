@@ -53,6 +53,12 @@ The README format for pattern sizes is **cols × rows** (width × height):
 All patterns use **row 0 = bottom of knitting** (knitting convention).
 The canvas is flipped vertically for display so row 0 appears at the bottom.
 
+**Grid resize behavior:** When the user changes rows or cols via `GridSizeControls`:
+- Existing cells within the new bounds are preserved.
+- Rows/columns removed by shrinking are discarded (no undo for this).
+- Rows/columns added by growing are initialized to `0` (empty).
+- The `resizeGrid(area, rows, cols)` action in `pattern-store` handles this in-place.
+
 ---
 
 ## Patterns (data structure)
@@ -122,14 +128,23 @@ Stitch count through the yoke (4XL, 20 repeats of 12):
 ### Yoke row skipping per size
 
 The 56-row grid represents the full yoke at **4XL**. Smaller sizes skip certain rows,
-resulting in a shorter yoke. The row-skip mapping is **predefined in code** and will be
-specified in a dedicated user story.
+resulting in a shorter yoke. The row-skip mapping is **predefined in code**.
+
+> ⚠️ **Open item**: The exact per-size row-skip list must be provided by someone with knitting
+> domain knowledge before Phase 4 / Phase 5 can be implemented correctly. See Q20 in
+> `05-open-questions.md`.
+
+The structure that will hold this data:
 
 ```
-// Predefined lookup: which rows are omitted for each size
+// For each grid row (1-indexed, 1 = bottom of yoke), the *minimum* size at which
+// that row exists. Rows with no entry are present in all sizes.
+// Must be defined before Phase 4 work begins.
 YOKE_ROW_MIN_SIZE: Record<number, SweaterSize>
-// e.g.: { 50: "3XL", 52: "3XL", 54: "4XL", 55: "4XL", ... }
+// e.g.: { 50: "3XL", 52: "3XL", 54: "4XL", 55: "4XL", 56: "4XL" }
 ```
+
+Until this is filled in, the Phase 5 sweater preview will render all 56 rows for every size.
 
 ### Yoke in the pattern editor — visual representation
 
@@ -242,7 +257,7 @@ AppState
     sleeveOpening: PatternGrid
     yoke: PatternGrid
     activeArea: PatternArea
-    activeDrawingTool: "freehand" | "line"
+    activeDrawingTool: "freehand" | "line" | "eraser"
   }
   sweater: {
     size: SweaterSize
