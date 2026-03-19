@@ -10,28 +10,28 @@ committable increment. Later tasks will be refined as implementation progresses.
 
 ## Phase 1 — Project Scaffold
 
-- [ ] **T001** — Initialize Vite + React + TypeScript project
+- [x] **T001** — Initialize Vite + React + TypeScript project
   - `npm create vite` in a temp dir, copy into repo root
   - Verify dev server starts (`npm run dev`)
   - Commit: working "Hello World" Vite app
 
-- [ ] **T002** — Install dependencies and finalize tsconfig
+- [x] **T002** — Install dependencies and finalize tsconfig
   - `npm install zustand immer`
   - Configure `tsconfig.json`: strict mode, `verbatimModuleSyntax: true`, path aliases
   - Verify TypeScript compiles with no errors
   - Commit: deps installed, tsconfig locked
 
-- [ ] **T003** — Dark theme CSS foundation
+- [x] **T003** — Dark theme CSS foundation
   - `index.css`: CSS custom properties for colors, spacing, typography
   - Global reset (box-sizing, margin, font)
   - Commit: design tokens + reset in place
 
-- [ ] **T004** — App toolbar shell
+- [x] **T004** — App toolbar shell
   - `AppToolbar.tsx`: size dropdown (hardcoded to "M"), Export / Import / Download Instructions buttons (no-op)
   - Renders at the top of the page
   - Commit: toolbar visible with placeholder controls
 
-- [ ] **T005** — Three-panel layout shell
+- [x] **T005** — Three-panel layout shell
   - `ThreePanelLayout.tsx` + `LeftPanel`, `CenterPanel`, `RightPanel`
   - Correct widths (260px left, flex center, 320px right), full viewport height
   - Each panel shows a label; no real content yet
