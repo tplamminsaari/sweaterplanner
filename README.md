@@ -1,48 +1,73 @@
-# sweaterplanner
+# React + TypeScript + Vite
 
-## Overal description
-A tool for planning Icelandic sweaters. There are 3 main panels.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-### Yarn catalog
-There is a yarn catalog, from where user can select different type of yarns and colors. User can select yarns from different brands (like Istex and Novita).
+Currently, two official plugins are available:
 
-After selecting yarn brand, user can select type of yarn. E.g. Lettlopi and Wonder Wool DK.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-And after selecting the yarn type, there is color palette showing all yarn colors that are available.
+## React Compiler
 
-Eventually these yarns can be downloaded from backend, but at first phase it is ok to have small hardcoded yarn collection in code.
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-User can select up to 5 different yarns for the shirt from the yarn catalog.
+## Expanding the ESLint configuration
 
-### Pattern designer
-In the middle section of the screen there is the knitting pattern designer tool. User can design different patterns for
-- Shirt tail. Pattern size from 4x13 to 8x26.
-- Sleeve openings. Pattern size from 4x13 to 8x26.
-- Yoke. Pattern size 12x56 to 24x56.
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-User can select the size of the pattern for each part of the shirt.
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
 
-The pattern designer is like a drawing application, where user can place different colors to the grid. Each sell in grid representsa stitch in the sweater.
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
 
-### Sweater preview pane
-The preview pane shows 2D preview of the sweater. It renders the sweater and does texture mapping of the designed patters to the right locations of the shirt.
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
 
-The basic structure of the sweater from top to bottom is:
-- Ribbing knit around neckhole. Height of 5cm.
-- Yoke, based on the pattern. Top of the yoke is narrower than the bottom part of the yoke. This means that pattern will have less stitches on upper part than on lower part.
-- The base of the shirt in single color.
-- Bottom pattern for shirt's tail.
-- Ribbing knit at the end of shirt tail.
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-The sleeves will have structure:
-- Base of the sleeve in single color. Gradually getting slightly norrower when aproaching the sleeve opening.
-- Pattern for the sleeve opening.
-- Ribbing knit around the sleeve opening. Left 5cm.
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-## Other things
-The tool will estimate the amount of yarn is needed based on yarn density.
-
-There will be downloadable knitting instructions. This is mostly based on template that will just updated with the yarns selected for the sweater.
-
-## Implementation details
-Sweater planner will run in browser. It will be implemented using react. At first phase it does not need to have backend server but that can be added at later phase. The backend would provide the yarn catalog and different sweater models. But at first phase these can be hardcoded to the planner application but abstracted so that it could be replaced with real backend service later without fully rewriting the entire application.
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
