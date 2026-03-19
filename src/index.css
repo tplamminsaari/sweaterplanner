@@ -119,3 +119,51 @@ select {
   border-color: var(--color-accent);
   color: var(--color-text-heading);
 }
+
+/* ─── App shell ──────────────────────────────────────────────── */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ─── Three-panel layout ─────────────────────────────────────── */
+.three-panel {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--color-border);
+}
+
+.panel--left {
+  width: var(--panel-left-width);
+  flex-shrink: 0;
+  background: var(--color-surface);
+}
+
+.panel--center {
+  flex: 1;
+  background: var(--color-bg);
+}
+
+.panel--right {
+  width: var(--panel-right-width);
+  flex-shrink: 0;
+  background: var(--color-surface);
+  border-right: none;
+}
+
+.panel__label {
+  display: block;
+  padding: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}

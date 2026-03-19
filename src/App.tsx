@@ -1,10 +1,15 @@
 import { AppToolbar } from '@/components/layout/AppToolbar'
+import { ThreePanelLayout } from '@/components/layout/ThreePanelLayout'
 
 function App() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="app-shell">
       <AppToolbar />
-      <div style={{ flex: 1 }}>panels go here</div>
+      <ThreePanelLayout
+        left={<span className="panel__label">Yarn Catalog</span>}
+        center={<span className="panel__label">Pattern Designer</span>}
+        right={<span className="panel__label">Sweater Preview</span>}
+      />
     </div>
   )
 }
