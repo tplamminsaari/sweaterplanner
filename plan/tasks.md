@@ -62,7 +62,7 @@ committable increment. Later tasks will be refined as implementation progresses.
 
 ## Phase 3 — Yarn Catalog Panel
 
-- [ ] **T008** — yarn-store
+- [x] **T008** — yarn-store
   - `src/store/yarn-store.ts`: `persist(immer(...))` with
     `catalog` (brands/types/colors), `slots: YarnSlot[5]`, `activeSlotIndex`
   - Actions: `loadCatalog`, `setActiveSlotIndex`, `assignColorToSlot`, `clearSlot`
