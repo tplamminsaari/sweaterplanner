@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { usePatternStore } from '@/store/pattern-store'
 import { useYarnStore } from '@/store/yarn-store'
 import { useCanvasGrid, CELL_SIZE } from '@/hooks/useCanvasGrid'
@@ -35,10 +35,19 @@ function useColorMap(): Record<number, string> {
 export function PatternGrid() {
   const activeArea = usePatternStore((s) => s.activeArea)
   const grid = usePatternStore((s) => s[activeArea])
+  const activeDrawingTool = usePatternStore((s) => s.activeDrawingTool)
+  const setCellColor = usePatternStore((s) => s.setCellColor)
+  const activeSlotIndex = useYarnStore((s) => s.activeSlotIndex)
   const colorMap = useColorMap()
 
   const yokeInactive = useYokeInactiveCells(grid.rows, grid.cols)
   const inactiveCells = activeArea === 'yoke' ? yokeInactive : undefined
+
+  const onCellPaint = useCallback((row: number, col: number) => {
+    if (activeDrawingTool === 'freehand') {
+      setCellColor(activeArea, row, col, activeSlotIndex + 1)
+    }
+  }, [activeDrawingTool, setCellColor, activeArea, activeSlotIndex])
 
   const canvasRef = useCanvasGrid({
     cols: grid.cols,
@@ -46,6 +55,7 @@ export function PatternGrid() {
     cells: grid.cells,
     colorMap,
     inactiveCells,
+    onCellPaint,
   })
 
   return (
@@ -56,6 +66,7 @@ export function PatternGrid() {
           width: grid.cols * CELL_SIZE,
           height: grid.rows * CELL_SIZE,
           imageRendering: 'pixelated',
+          cursor: 'crosshair',
         }}
       />
     </div>

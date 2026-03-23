@@ -111,7 +111,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Yoke tab: derives inactive cells from `YOKE_COLUMN_SKIP_SCHEDULE` and passes to hook
   - Commit: all three pattern areas viewable
 
-- [ ] **T015** — Freehand painting
+- [x] **T015** — Freehand painting
   - Add mouse/pointer event handling to `useCanvasGrid`
   - Mousedown + drag paints cells with `activeSlotIndex`; dispatches `setCellColor`
   - Commit: user can paint on the grid with freehand
