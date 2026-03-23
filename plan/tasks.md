@@ -149,7 +149,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - All pixel dimensions derived from stitch counts + scale factor
   - Commit: utility computes correct geometry for all sizes (verify with unit test or console)
 
-- [ ] **T021** — sweater-store and size selector
+- [x] **T021** — sweater-store and size selector
   - `src/store/sweater-store.ts`: `persist(immer(...))` with `size`, derived `geometry`
   - Action: `setSize(size)` — updates size and recomputes geometry
   - Wire `AppToolbar` size dropdown → `sweater-store.setSize`
