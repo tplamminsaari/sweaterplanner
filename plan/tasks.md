@@ -89,7 +89,7 @@ committable increment. Later tasks will be refined as implementation progresses.
 
 ## Phase 4 — Pattern Designer
 
-- [ ] **T012** — pattern-store
+- [x] **T012** — pattern-store
   - `src/store/pattern-store.ts`: `persist(immer(...))` with
     initial grids (shirtTail 8×13, sleeveOpening 8×13, yoke 12×56),
     `activeArea`, `activeDrawingTool`
