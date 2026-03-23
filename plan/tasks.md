@@ -126,7 +126,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Mouseup computes end cell; Bresenham algorithm fills cells; dispatches `setCellColor` for each
   - Commit: line tool works with live preview
 
-- [ ] **T018** — Drawing toolbar
+- [x] **T018** — Drawing toolbar
   - `DrawingToolbar.tsx`: Freehand / Line / Eraser buttons; active tool highlighted
   - Fill Pattern button: fills all paintable cells (active slot color);
     shows confirmation dialog if any cells are non-empty
