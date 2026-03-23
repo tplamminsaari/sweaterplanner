@@ -116,7 +116,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Mousedown + drag paints cells with `activeSlotIndex`; dispatches `setCellColor`
   - Commit: user can paint on the grid with freehand
 
-- [ ] **T016** — Eraser tool
+- [x] **T016** — Eraser tool
   - Eraser mode: same pointer events as freehand but sets cell to 0
   - Active tool read from pattern-store
   - Commit: eraser works; switching tools changes behavior

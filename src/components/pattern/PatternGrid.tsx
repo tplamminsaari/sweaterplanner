@@ -46,6 +46,8 @@ export function PatternGrid() {
   const onCellPaint = useCallback((row: number, col: number) => {
     if (activeDrawingTool === 'freehand') {
       setCellColor(activeArea, row, col, activeSlotIndex + 1)
+    } else if (activeDrawingTool === 'eraser') {
+      setCellColor(activeArea, row, col, 0)
     }
   }, [activeDrawingTool, setCellColor, activeArea, activeSlotIndex])
 
@@ -66,7 +68,7 @@ export function PatternGrid() {
           width: grid.cols * CELL_SIZE,
           height: grid.rows * CELL_SIZE,
           imageRendering: 'pixelated',
-          cursor: 'crosshair',
+          cursor: activeDrawingTool === 'eraser' ? 'cell' : 'crosshair',
         }}
       />
     </div>
