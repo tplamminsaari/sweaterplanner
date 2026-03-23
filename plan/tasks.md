@@ -121,7 +121,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Active tool read from pattern-store
   - Commit: eraser works; switching tools changes behavior
 
-- [ ] **T017** — Line tool
+- [x] **T017** — Line tool
   - Mousedown records start cell; drag shows live line preview (no store writes)
   - Mouseup computes end cell; Bresenham algorithm fills cells; dispatches `setCellColor` for each
   - Commit: line tool works with live preview

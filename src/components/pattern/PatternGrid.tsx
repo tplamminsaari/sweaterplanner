@@ -51,13 +51,22 @@ export function PatternGrid() {
     }
   }, [activeDrawingTool, setCellColor, activeArea, activeSlotIndex])
 
+  const onLinePaint = useCallback((lineCells: { row: number; col: number }[]) => {
+    for (const { row, col } of lineCells) {
+      setCellColor(activeArea, row, col, activeSlotIndex + 1)
+    }
+  }, [setCellColor, activeArea, activeSlotIndex])
+
   const canvasRef = useCanvasGrid({
     cols: grid.cols,
     rows: grid.rows,
     cells: grid.cells,
     colorMap,
     inactiveCells,
+    activeTool: activeDrawingTool,
     onCellPaint,
+    onLinePaint,
+    paintSlot: activeSlotIndex + 1,
   })
 
   return (
@@ -68,7 +77,7 @@ export function PatternGrid() {
           width: grid.cols * CELL_SIZE,
           height: grid.rows * CELL_SIZE,
           imageRendering: 'pixelated',
-          cursor: activeDrawingTool === 'eraser' ? 'cell' : 'crosshair',
+          cursor: activeDrawingTool === 'eraser' ? 'cell' : activeDrawingTool === 'line' ? 'crosshair' : 'crosshair',
         }}
       />
     </div>
