@@ -79,7 +79,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Clicking a swatch calls `assignColorToSlot(activeSlotIndex, colorId)`
   - Commit: color swatches render and are clickable
 
-- [ ] **T011** — Yarn slots
+- [x] **T011** — Yarn slots
   - `YarnSlots.tsx`: row of 5 slots showing assigned color (or empty)
   - Click slot → `setActiveSlotIndex`; click active slot again → `clearSlot`
   - Active slot visually highlighted
