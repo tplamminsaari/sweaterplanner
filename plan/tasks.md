@@ -97,7 +97,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - `resizeGrid`: preserve in-bounds cells, discard out-of-bounds, init new cells to 0
   - Commit: store functional with correct initial state
 
-- [ ] **T013** — useCanvasGrid hook (render only)
+- [x] **T013** — useCanvasGrid hook (render only)
   - `src/hooks/useCanvasGrid.ts`
   - Renders grid cells with correct colors from `colorMap`; row 0 at canvas bottom
   - `inactiveCells?: Set<string>` param: renders those cells with cross-hatch, non-paintable
