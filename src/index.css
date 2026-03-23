@@ -240,3 +240,32 @@ select {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
+
+/* ─── Color palette ──────────────────────────────────────────── */
+.color-palette {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.color-swatch {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: var(--swatch-color);
+  border: 2px solid transparent;
+  transition: transform 0.1s, border-color 0.1s;
+  outline-offset: 2px;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.color-swatch--active {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent);
+}

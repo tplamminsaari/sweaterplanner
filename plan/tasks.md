@@ -74,7 +74,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Reads from yarn-store catalog; no color selection yet
   - Commit: brand/type navigation works
 
-- [ ] **T010** — Color palette
+- [x] **T010** — Color palette
   - `ColorPalette.tsx`: grid of color swatches for the selected yarn type
   - Clicking a swatch calls `assignColorToSlot(activeSlotIndex, colorId)`
   - Commit: color swatches render and are clickable

@@ -3,6 +3,7 @@ import { useYarnStore } from '@/store/yarn-store'
 import { hardcodedYarnCatalog } from '@/services/hardcoded-yarn-catalog'
 import { BrandSelector } from './BrandSelector'
 import { YarnTypeSelector } from './YarnTypeSelector'
+import { ColorPalette } from './ColorPalette'
 
 export function YarnCatalogPanel() {
   const catalog = useYarnStore((s) => s.catalog)
@@ -44,6 +45,10 @@ export function YarnCatalogPanel() {
     ? catalog.types.filter((t) => t.brandId === selectedBrandId)
     : []
 
+  const visibleColors = selectedTypeId
+    ? catalog.colors.filter((c) => c.yarnTypeId === selectedTypeId)
+    : []
+
   function handleBrandSelect(brandId: string) {
     setSelectedBrandId(brandId)
   }
@@ -60,6 +65,7 @@ export function YarnCatalogPanel() {
         selectedTypeId={selectedTypeId}
         onSelect={setSelectedTypeId}
       />
+      <ColorPalette colors={visibleColors} />
     </div>
   )
 }
