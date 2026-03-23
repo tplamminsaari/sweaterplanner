@@ -432,3 +432,25 @@ select {
   width: 20px;
   text-align: right;
 }
+
+/* ─── Sweater preview panel ──────────────────────────────────── */
+.sweater-preview-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sweater-canvas-wrapper {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.sweater-canvas-wrapper canvas {
+  display: block;
+  max-width: 100%;
+}

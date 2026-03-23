@@ -2,6 +2,7 @@ import { AppToolbar } from '@/components/layout/AppToolbar'
 import { ThreePanelLayout } from '@/components/layout/ThreePanelLayout'
 import { YarnCatalogPanel } from '@/components/yarn/YarnCatalogPanel'
 import { PatternDesignerPanel } from '@/components/pattern/PatternDesignerPanel'
+import { SweaterPreviewPanel } from '@/components/preview/SweaterPreviewPanel'
 
 function App() {
   return (
@@ -10,7 +11,7 @@ function App() {
       <ThreePanelLayout
         left={<YarnCatalogPanel />}
         center={<PatternDesignerPanel />}
-        right={<span className="panel__label">Sweater Preview</span>}
+        right={<SweaterPreviewPanel />}
       />
     </div>
   )

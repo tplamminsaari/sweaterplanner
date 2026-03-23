@@ -155,7 +155,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Wire `AppToolbar` size dropdown → `sweater-store.setSize`
   - Commit: changing size updates store and geometry
 
-- [ ] **T022** — Sweater canvas (solid color silhouette)
+- [x] **T022** — Sweater canvas (solid color silhouette)
   - `src/hooks/useSweaterRenderer.ts` + `SweaterCanvas.tsx`
   - Draws body rectangle, sleeve rectangles, neck rectangle using slot 1 color
   - Correct proportions per `SweaterGeometry`; re-renders on size or color change
