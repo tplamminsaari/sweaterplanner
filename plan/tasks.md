@@ -143,7 +143,7 @@ committable increment. Later tasks will be refined as implementation progresses.
 
 ## Phase 5 — Sweater Preview (shape only)
 
-- [ ] **T020** — Sweater geometry utility
+- [x] **T020** — Sweater geometry utility
   - `src/utils/sweater-geometry.ts`: pure function
     `computeGeometry(size, patterns, gauge) → SweaterGeometry`
   - All pixel dimensions derived from stitch counts + scale factor
