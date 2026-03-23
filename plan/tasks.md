@@ -50,7 +50,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - No logic, types only
   - Commit: all types compile cleanly
 
-- [ ] **T007** — YarnCatalogService interface + hardcoded implementation
+- [x] **T007** — YarnCatalogService interface + hardcoded implementation
   - `src/services/yarn-catalog-service.ts`: TypeScript interface
     (`getBrands`, `getTypesByBrand`, `getColorsByType`)
   - `src/services/hardcoded-yarn-catalog.ts`: implements the interface
