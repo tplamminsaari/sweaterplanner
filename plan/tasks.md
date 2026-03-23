@@ -189,12 +189,12 @@ committable increment. Later tasks will be refined as implementation progresses.
 
 ## Phase 7 — Yarn Estimation
 
-- [ ] **T027** — Yarn estimation utility
+- [x] **T027** — Yarn estimation utility
   - `src/utils/yarn-estimation.ts`: for each slot, count painted stitches across all areas,
     multiply by yarn weight per stitch → grams; divide by skein weight → skeins
   - Commit: utility produces correct estimates (verify manually for a simple test case)
 
-- [ ] **T028** — Yarn estimation component
+- [x] **T028** — Yarn estimation component
   - `YarnEstimation.tsx`: table showing slot color swatch / name / grams / skeins
   - Renders in the right panel below the sweater preview
   - Reactive to pattern and size changes
