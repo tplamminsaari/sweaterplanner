@@ -133,7 +133,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Dispatches `setDrawingTool` and `fillPattern` to pattern-store
   - Commit: full toolbar functional
 
-- [ ] **T019** — Grid size controls
+- [x] **T019** — Grid size controls
   - `GridSizeControls.tsx`: row and col inputs/sliders within allowed ranges
   - Hidden (or disabled) when active area is `yoke` (fixed 12×56)
   - Dispatches `resizeGrid` to pattern-store
