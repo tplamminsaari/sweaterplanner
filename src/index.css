@@ -312,3 +312,51 @@ select {
   color: var(--color-text-muted);
   line-height: 1;
 }
+
+/* ─── Pattern designer panel ─────────────────────────────────── */
+.pattern-designer-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.pattern-area-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.pattern-area-tab {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.pattern-area-tab:hover {
+  color: var(--color-text);
+}
+
+.pattern-area-tab--active {
+  color: var(--color-text-heading);
+  border-bottom-color: var(--color-accent);
+}
+
+.pattern-designer-panel__canvas-area {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.pattern-grid-wrapper {
+  display: inline-block;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+  line-height: 0;
+}

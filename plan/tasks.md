@@ -104,7 +104,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - No mouse interaction yet
   - Commit: grid renders correctly for all three areas
 
-- [ ] **T014** — PatternGrid component and area tabs
+- [x] **T014** — PatternGrid component and area tabs
   - `PatternGrid.tsx`: wraps canvas, wires `useCanvasGrid`, reads from pattern-store
   - `PatternAreaTabs.tsx`: three tabs (Shirt tail / Sleeve opening / Yoke)
   - Switching tabs updates `activeArea` in store
