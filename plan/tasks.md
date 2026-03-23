@@ -68,7 +68,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Actions: `loadCatalog`, `setActiveSlotIndex`, `assignColorToSlot`, `clearSlot`
   - Commit: store functional, persists to localStorage
 
-- [ ] **T009** — Brand and yarn type selectors
+- [x] **T009** — Brand and yarn type selectors
   - `BrandSelector.tsx`: tabs or list of brands
   - `YarnTypeSelector.tsx`: list of yarn types for the selected brand
   - Reads from yarn-store catalog; no color selection yet
