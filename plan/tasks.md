@@ -165,22 +165,22 @@ committable increment. Later tasks will be refined as implementation progresses.
 
 ## Phase 6 — Pattern Texture Mapping
 
-- [ ] **T023** — Shirt tail pattern on body
+- [x] **T023** — Shirt tail pattern on body
   - Map shirtTail grid onto the bottom section of the body in the preview
   - Pattern tiles horizontally to fill body width; renders above ribbing band
   - Commit: shirt tail pattern visible on sweater body
 
-- [ ] **T024** — Sleeve opening pattern on sleeves
+- [x] **T024** — Sleeve opening pattern on sleeves
   - Map sleeveOpening grid onto the bottom section of each sleeve
   - Commit: sleeve pattern visible on both sleeves
 
-- [ ] **T025** — Yoke pattern on stepped trapezoid
+- [x] **T025** — Yoke pattern on stepped trapezoid
   - Render yoke as 6 discrete width bands matching `YOKE_COLUMN_SKIP_SCHEDULE`
   - Each row stretched to the pixel width of its band; skipped columns not rendered
   - 12-col repeat tiled horizontally across the full width of each band
   - Commit: yoke pattern renders correctly as stepped trapezoid
 
-- [ ] **T026** — Ribbing areas
+- [x] **T026** — Ribbing areas
   - Neckhole ribbing (5 cm, solid color), hem ribbing (solid), sleeve opening ribbing (5 cm)
   - Rendered as solid color bands; no pattern
   - Commit: full sweater preview complete with all regions
