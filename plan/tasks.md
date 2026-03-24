@@ -232,6 +232,20 @@ committable increment. Later tasks will be refined as implementation progresses.
 
 ---
 
+---
+
+## Phase 10 — UX Improvements
+
+- [ ] **T032** — Resizable left and right panels
+  - Left panel (Yarn Catalog, default 260px) and right panel (Sweater Preview, default 320px)
+    should be draggable to resize
+  - Add drag handle between left/center and center/right panels
+  - Enforce reasonable min/max widths (left: 180–400px, right: 220–500px)
+  - No library dependency — implement with pointer events on the divider element
+  - Commit: both panels resizable by dragging the divider
+
+---
+
 ## Blocked / needs input before implementation
 
 - `[!]` **Q20** — `YOKE_ROW_MIN_SIZE`: which grid rows are skipped per size?
