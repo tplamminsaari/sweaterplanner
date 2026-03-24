@@ -250,6 +250,14 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Show color name on hover (tooltip or title attribute) instead of always-visible label
   - Commit: color palette more compact, all colors visible at a glance
 
+- [ ] **T034** — Row numbers on pattern grids
+  - Render row numbers along the left edge of each pattern grid canvas in `useCanvasGrid`
+  - Numbering goes bottom-up (row 1 at canvas bottom), matching knitting convention
+  - Use a muted, low-contrast color (e.g. ~40% opacity of the text color) so numbers
+    are readable without competing with the pattern
+  - Account for the number column width so grid cells are not obscured
+  - Commit: row numbers visible on all three pattern grids
+
 ---
 
 ## Blocked / needs input before implementation
@@ -257,3 +265,14 @@ committable increment. Later tasks will be refined as implementation progresses.
 - `[!]` **Q20** — `YOKE_ROW_MIN_SIZE`: which grid rows are skipped per size?
   Needed before T025 (yoke texture mapping) can handle smaller sizes correctly.
   See `05-open-questions.md`.
+  Here's the details for needed for this task.
+  - Row 2: skip on sizes S, M, L, XL and 3XL.
+  - Row 3: skip on sizes S, M and L.
+  - Row 11: skip on sizes S and M.
+  - Row 25: skip on size S.
+  - Row 32: skip on sizes S, M, L and XL.
+  - Row 39: skip on size S.
+  - Row 47: skip on sizes S, M, L, XL, 2XL and 3XL.
+  - Row 50: skip on sizes S, M, L, XL and 2XL.
+  - Row 53: skip on sizes S, M and L.
+
