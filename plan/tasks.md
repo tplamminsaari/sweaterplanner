@@ -204,30 +204,31 @@ committable increment. Later tasks will be refined as implementation progresses.
 
 ## Phase 8 — Project Export / Import
 
-- [ ] **T029** — Project export
+- [x] **T029** — Project export
   - Serialize `yarns.slots + patterns + sweater.size` to `ProjectExport` JSON
   - Trigger browser download as `sweater-design.json`
   - Wire Export button in `AppToolbar`
   - Commit: export produces a valid, downloadable JSON file
 
-- [ ] **T030** — Project import
+- [x] **T030** — Project import
   - File picker → read JSON → validate schema version
   - Show confirmation dialog ("This will replace your current design")
   - On confirm: replace store state; show user-facing error on invalid file
   - Wire Import button in `AppToolbar`
+  - Added `loadGrids` action to pattern-store for bulk grid replacement
   - Commit: round-trip export → import restores design correctly
 
 ---
 
 ## Phase 9 — Knitting Instructions Download
 
-- [ ] **T031** — Knitting instructions generator
-  - Define text template with variable substitution
-  - Fill in: yarn names/colors, needle size, stitch counts per size, yoke row schedule
+- [x] **T031** — Knitting instructions generator
+  - Added `needleSizeMm` to `YarnType` type and catalog data
+  - `src/services/generate-instructions.ts`: plain-text template with yarn slots +
+    estimates, needle/gauge info, per-size stitch counts, structure overview,
+    yoke decrease schedule, ASCII pattern grids for all three areas
   - Wire Download Instructions button in `AppToolbar`
   - Commit: downloaded `.txt` contains correct yarn and stitch info
-
-  > Note: exact template content to be defined before starting this task.
 
 ---
 
