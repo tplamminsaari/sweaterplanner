@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { RefObject } from 'react'
 import type { SweaterGeometry, PatternGrid } from '../types'
-import { YOKE_COLUMN_SKIP_SCHEDULE, yokeInactiveColsForRow } from '../types'
+import { yokeInactiveColsForRow } from '../types'
 
 const BG            = '#1a1a1e'
 const FALLBACK_COLOR = '#4a4a5a'

@@ -26,6 +26,7 @@ interface PatternActions {
   setCellColor(area: PatternArea, row: number, col: number, slotIndex: number): void
   resizeGrid(area: PatternArea, rows: number, cols: number): void
   fillPattern(area: PatternArea, slotIndex: number): void
+  loadGrids(grids: { shirtTail: PatternGrid; sleeveOpening: PatternGrid; yoke: PatternGrid }): void
 }
 
 export const usePatternStore = create<PatternState & PatternActions>()(
@@ -77,6 +78,14 @@ export const usePatternStore = create<PatternState & PatternActions>()(
               grid.cells[r][c] = slotIndex
             }
           }
+        })
+      },
+
+      loadGrids(grids) {
+        set((state) => {
+          state.shirtTail     = grids.shirtTail
+          state.sleeveOpening = grids.sleeveOpening
+          state.yoke          = grids.yoke
         })
       },
     })),
