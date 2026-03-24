@@ -14,6 +14,7 @@ export const yarnTypes: YarnType[] = [
     metersPerWeight: 100,
     stitchesPer10cm: 18,
     rowsPer10cm: 24,
+    needleSizeMm: 4.5,
   },
   {
     id: 'alafoss',
@@ -23,6 +24,7 @@ export const yarnTypes: YarnType[] = [
     metersPerWeight: 100,
     stitchesPer10cm: 13,
     rowsPer10cm: 18,
+    needleSizeMm: 6.0,
   },
   {
     id: 'peer-gynt',
@@ -32,6 +34,7 @@ export const yarnTypes: YarnType[] = [
     metersPerWeight: 160,
     stitchesPer10cm: 22,
     rowsPer10cm: 30,
+    needleSizeMm: 4.0,
   },
 ]
 

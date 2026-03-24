@@ -14,6 +14,7 @@ export interface YarnType {
   metersPerWeight: number   // meters per skein
   stitchesPer10cm: number   // gauge, e.g. 18 for Léttlopi on 4.5mm needles
   rowsPer10cm: number
+  needleSizeMm: number      // recommended needle diameter
 }
 
 export interface YarnColor {

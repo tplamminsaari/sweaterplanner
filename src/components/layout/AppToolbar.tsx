@@ -3,6 +3,7 @@ import type { SweaterSize } from '@/types'
 import { useSweaterStore } from '@/store/sweater-store'
 import { exportProject } from '@/services/project-export'
 import { importProject } from '@/services/project-import'
+import { downloadInstructions } from '@/services/generate-instructions'
 
 const SIZES: SweaterSize[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL']
 
@@ -55,7 +56,7 @@ export function AppToolbar() {
       <div className="app-toolbar__group app-toolbar__actions">
         <button className="toolbar-btn" onClick={exportProject}>Export</button>
         <button className="toolbar-btn" onClick={handleImportClick}>Import</button>
-        <button className="toolbar-btn">Download Instructions</button>
+        <button className="toolbar-btn" onClick={downloadInstructions}>Download Instructions</button>
 
         <input
           ref={fileInputRef}
