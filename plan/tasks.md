@@ -245,7 +245,35 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Check the architecture description in plan-directory and update that if needed because of this task.
   - Commit: both panels resizable by dragging the divider
 
-- [ ] **T033** — Smaller color swatches in the yarn catalog
+- [ ] **T033** — Texture-based sweater preview
+  - Replace the current geometric canvas preview with a photo-realistic texture renderer
+  - **Asset setup**: copy `dist/assets/sweater-texture.png` to `public/sweater-texture.png`
+    so it is available as a static asset at runtime
+  - **Rendering approach**:
+    - Load the texture image onto the canvas as the base layer
+    - The texture is white/light-grey; tint each zone by drawing a solid color rectangle
+      over it using `globalCompositeOperation = 'multiply'` — this preserves the knit
+      weave detail while applying the yarn color
+  - **Zone layout** (based on `plan/assets/sweater-structure.png`, back-view image):
+    - Neck ribbing: small curved band at the neckline top
+    - Yoke pattern: large area from neckline down to the horizontal divider line,
+      spanning full body width and the upper portion of both sleeves
+    - Tail pattern: horizontal band above the bottom ribbing on the body
+    - Body ribbing: bottom hem band
+    - Sleeve pattern: horizontal band above the cuff ribbing on each sleeve
+    - Sleeve ribbing: cuff band at the end of each sleeve
+  - Define zone boundaries as proportional coordinates (0–1) relative to the
+    texture image dimensions so they remain correct at any canvas scale
+  - Apply the slot color from each pattern area (yoke → slot colors from yoke grid,
+    tail → shirt tail grid, sleeve → sleeve opening grid, ribbing → slot 1)
+  - The size selector does not change the texture image but can adjust which
+    zone boundaries are used if needed
+  - Copy reference images to `plan/assets/`:
+    - `plan/assets/sweater-structure.png`
+    - `plan/assets/sweater-texture.png`
+  - Commit: preview uses real sweater texture with correct zone coloring
+
+- [ ] **T034** — Smaller color swatches in the yarn catalog
   - Reduce swatch size in `ColorPalette.tsx` so more colors are visible without scrolling
   - Show color name on hover (tooltip or title attribute) instead of always-visible label
   - Commit: color palette more compact, all colors visible at a glance
