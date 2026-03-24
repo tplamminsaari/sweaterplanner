@@ -286,7 +286,7 @@ committable increment. Later tasks will be refined as implementation progresses.
     can see the complete picture at a glance
   - Commit: instructions include accurate per-size yoke row skip info
 
-- [ ] **T037** — UI localization (English, Finnish, Swedish)
+- [ ] **T037** ⚠️ LOW PRIORITY — UI localization (English, Finnish, Swedish)
   - Install `i18next` and `react-i18next`
   - Extract all user-visible strings from components into translation files:
     `src/locales/en.json`, `src/locales/fi.json`, `src/locales/sv.json`
