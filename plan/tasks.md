@@ -286,6 +286,19 @@ committable increment. Later tasks will be refined as implementation progresses.
     can see the complete picture at a glance
   - Commit: instructions include accurate per-size yoke row skip info
 
+- [ ] **T037** — UI localization (English, Finnish, Swedish)
+  - Install `i18next` and `react-i18next`
+  - Extract all user-visible strings from components into translation files:
+    `src/locales/en.json`, `src/locales/fi.json`, `src/locales/sv.json`
+  - Strings to cover: panel labels, toolbar buttons, yarn catalog headings,
+    drawing tool names, pattern area tab names, grid size controls,
+    yarn estimation table headers, error messages
+  - Add a language selector to `AppToolbar` (e.g. EN / FI / SV toggle)
+  - Persist the selected language to localStorage
+  - The downloaded instructions `.txt` file should also be generated in the
+    selected language
+  - Commit: full UI translatable; EN/FI/SV translations complete
+
 ---
 
 ## Blocked / needs input before implementation
