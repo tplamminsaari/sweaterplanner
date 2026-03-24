@@ -258,21 +258,38 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Account for the number column width so grid cells are not obscured
   - Commit: row numbers visible on all three pattern grids
 
+- [ ] **T035** — Implement yoke row skipping per size
+  - The existing `YOKE_ROW_MIN_SIZE` type assumes a simple minimum-size threshold, but the
+    actual skip pattern is non-monotonic (e.g. row 2 is skipped on 3XL but not XXL).
+    Replace it with a more flexible structure: `YOKE_ROW_SKIP_SIZES: Partial<Record<number, SweaterSize[]>>`
+    listing the exact sizes on which each row is skipped.
+  - Fill in the data (rows absent from the map are knitted in all sizes):
+    - Row 2:  skip on S, M, L, XL, 3XL
+    - Row 3:  skip on S, M, L
+    - Row 11: skip on S, M
+    - Row 25: skip on S
+    - Row 32: skip on S, M, L, XL
+    - Row 39: skip on S
+    - Row 47: skip on S, M, L, XL, XXL, 3XL
+    - Row 50: skip on S, M, L, XL, XXL
+    - Row 53: skip on S, M, L
+  - Update `useSweaterRenderer` to skip these rows when drawing the yoke for the active size
+  - In the yoke pattern editor (`useCanvasGrid`), mark skipped rows for the current size
+    as inactive (visually dimmed, non-paintable) — similar to how inactive columns work
+  - Update all references to `YOKE_ROW_MIN_SIZE` throughout the codebase
+  - Commit: yoke rendering and editor correctly reflect per-size row skipping
+
+- [ ] **T036** — Include yoke row skipping in downloaded instructions
+  - In `generate-instructions.ts`, add a section listing which rows are skipped per size
+  - For the current size, list the skipped row numbers explicitly
+  - Also print a compact full table (all sizes × all affected rows) so the knitter
+    can see the complete picture at a glance
+  - Commit: instructions include accurate per-size yoke row skip info
+
 ---
 
 ## Blocked / needs input before implementation
 
-- `[!]` **Q20** — `YOKE_ROW_MIN_SIZE`: which grid rows are skipped per size?
-  Needed before T025 (yoke texture mapping) can handle smaller sizes correctly.
-  See `05-open-questions.md`.
-  Here's the details for needed for this task.
-  - Row 2: skip on sizes S, M, L, XL and 3XL.
-  - Row 3: skip on sizes S, M and L.
-  - Row 11: skip on sizes S and M.
-  - Row 25: skip on size S.
-  - Row 32: skip on sizes S, M, L and XL.
-  - Row 39: skip on size S.
-  - Row 47: skip on sizes S, M, L, XL, 2XL and 3XL.
-  - Row 50: skip on sizes S, M, L, XL and 2XL.
-  - Row 53: skip on sizes S, M and L.
+- `[x]` **Q20** — `YOKE_ROW_MIN_SIZE`: which grid rows are skipped per size?
+  Resolved — data provided, see T035 for implementation.
 
