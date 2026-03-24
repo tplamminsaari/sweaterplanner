@@ -242,7 +242,13 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Add drag handle between left/center and center/right panels
   - Enforce reasonable min/max widths (left: 180–400px, right: 220–500px)
   - No library dependency — implement with pointer events on the divider element
+  - Check the architecture description in plan-directory and update that if needed because of this task.
   - Commit: both panels resizable by dragging the divider
+
+- [ ] **T033** — Smaller color swatches in the yarn catalog
+  - Reduce swatch size in `ColorPalette.tsx` so more colors are visible without scrolling
+  - Show color name on hover (tooltip or title attribute) instead of always-visible label
+  - Commit: color palette more compact, all colors visible at a glance
 
 ---
 
