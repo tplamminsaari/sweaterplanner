@@ -1,73 +1,71 @@
-# React + TypeScript + Vite
+# Sweater Planner
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A browser-based tool for designing knitting patterns for sweaters. Draw colorwork patterns on a grid, assign yarn colors, and see a live preview of the finished sweater.
 
-Currently, two official plugins are available:
+**Features:**
+- Two pattern grids: hem/cuffs and yoke, with configurable dimensions
+- Yarn library with colors from Ístex (Léttlopi, Álafoss Lopi) and Sandnes Garn (Peer Gynt)
+- Live sweater preview: pattern colors rendered onto a flat 2D sweater illustration
+- Pattern state persisted in browser localStorage
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**Tech stack:** React 19 + TypeScript + Vite, Zustand + Immer for state, HTML Canvas for rendering.
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Development Setup
 
-## Expanding the ESLint configuration
+### Prerequisites
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Node.js** 18 or later — [nodejs.org](https://nodejs.org)
+- **npm** (bundled with Node.js) or **yarn**
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Linux
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+```bash
+# Install Node.js via your package manager, e.g. on Ubuntu/Debian:
+sudo apt install nodejs npm
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Or use nvm for version management (recommended):
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+# restart your shell, then:
+nvm install --lts
+
+# Clone and install
+git clone <repo-url> sweaterplanner
+cd sweaterplanner
+npm install
+
+# Start the dev server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app will be available at `http://localhost:5173`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Windows
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. Download and install Node.js from [nodejs.org](https://nodejs.org) (LTS version recommended).
+   Alternatively, install via [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/):
+   ```powershell
+   winget install OpenJS.NodeJS.LTS
+   ```
+
+2. Open a terminal (Command Prompt, PowerShell, or Windows Terminal) and run:
+   ```powershell
+   git clone <repo-url> sweaterplanner
+   cd sweaterplanner
+   npm install
+   npm run dev
+   ```
+
+The app will be available at `http://localhost:5173`.
+
+---
+
+## Available Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the Vite dev server with hot module reloading |
+| `npm run build` | Type-check and build for production (`dist/`) |
+| `npm run preview` | Serve the production build locally |
+| `npm run lint` | Run ESLint |
