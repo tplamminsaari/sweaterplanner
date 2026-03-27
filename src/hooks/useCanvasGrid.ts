@@ -4,11 +4,13 @@ import { bresenhamLine } from '@/utils/bresenham'
 import type { DrawingTool } from '@/types'
 
 const CELL_SIZE = 20
+const ROW_NUM_WIDTH = 24   // pixels reserved for row number labels on the left
 const GRID_LINE_COLOR = 'rgba(255,255,255,0.08)'
 const INACTIVE_FILL = 'rgba(0,0,0,0.5)'
 const INACTIVE_HATCH_COLOR = 'rgba(255,255,255,0.15)'
 const EMPTY_FILL = '#2c2c32'
 const PREVIEW_ALPHA = 0.55
+const ROW_NUM_COLOR = 'rgba(255,255,255,0.35)'
 
 /** Convert a canvas-space Y pixel to a 0-indexed grid row (row 0 = bottom). */
 function pixelToGridRow(canvasY: number, rows: number): number {
@@ -27,6 +29,10 @@ interface UseCanvasGridOptions {
   colorMap: Record<number, string>     // slotIndex → hex color (0 = empty)
   inactiveCells?: ReadonlySet<string>  // "row,col" keys (1-indexed row, 1-indexed col)
   activeTool?: DrawingTool
+  /** Called once at the start of each paint stroke (before any cells are changed). */
+  onStrokeStart?: () => void
+  /** Called once when a paint stroke ends (pointer up or leave). */
+  onStrokeEnd?: () => void
   /** Called when the user paints a cell (freehand/eraser). row/col are 0-indexed. */
   onCellPaint?: (row: number, col: number) => void
   /** Called when the user completes a line stroke. */
@@ -54,7 +60,7 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
     if (!ctx) return
 
     function draw(preview?: { row: number; col: number }[]) {
-      const w = cols * CELL_SIZE
+      const w = ROW_NUM_WIDTH + cols * CELL_SIZE
       const h = rows * CELL_SIZE
       canvas!.width = w
       canvas!.height = h
@@ -70,7 +76,7 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
         const gridRow1 = r + 1
 
         for (let c = 0; c < cols; c++) {
-          const x = c * CELL_SIZE
+          const x = ROW_NUM_WIDTH + c * CELL_SIZE
           const gridCol1 = c + 1
           const inactive = inactiveCells?.has(`${gridRow1},${gridCol1}`) ?? false
           const slotIndex = cells[r]?.[c] ?? 0
@@ -103,16 +109,28 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
       ctx!.strokeStyle = GRID_LINE_COLOR
       ctx!.lineWidth = 1
       for (let c = 0; c <= cols; c++) {
+        const x = ROW_NUM_WIDTH + c * CELL_SIZE + 0.5
         ctx!.beginPath()
-        ctx!.moveTo(c * CELL_SIZE + 0.5, 0)
-        ctx!.lineTo(c * CELL_SIZE + 0.5, rows * CELL_SIZE)
+        ctx!.moveTo(x, 0)
+        ctx!.lineTo(x, rows * CELL_SIZE)
         ctx!.stroke()
       }
       for (let r = 0; r <= rows; r++) {
         ctx!.beginPath()
-        ctx!.moveTo(0, r * CELL_SIZE + 0.5)
-        ctx!.lineTo(cols * CELL_SIZE, r * CELL_SIZE + 0.5)
+        ctx!.moveTo(ROW_NUM_WIDTH, r * CELL_SIZE + 0.5)
+        ctx!.lineTo(w, r * CELL_SIZE + 0.5)
         ctx!.stroke()
+      }
+
+      // Row numbers (bottom-up, 1-indexed)
+      ctx!.fillStyle = ROW_NUM_COLOR
+      ctx!.font = '9px sans-serif'
+      ctx!.textAlign = 'right'
+      ctx!.textBaseline = 'middle'
+      for (let r = 0; r < rows; r++) {
+        const canvasRow = rows - 1 - r
+        const y = canvasRow * CELL_SIZE + CELL_SIZE / 2
+        ctx!.fillText(String(r + 1), ROW_NUM_WIDTH - 3, y)
       }
     }
 
@@ -132,7 +150,7 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
       const rect = canvas!.getBoundingClientRect()
       const scaleX = canvas!.width / rect.width
       const scaleY = canvas!.height / rect.height
-      const x = (e.clientX - rect.left) * scaleX
+      const x = (e.clientX - rect.left) * scaleX - ROW_NUM_WIDTH
       const y = (e.clientY - rect.top) * scaleY
       const col = pixelToGridCol(x)
       const row = pixelToGridRow(y, rows)
@@ -146,7 +164,8 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
       canvas!.setPointerCapture(e.pointerId)
       const cell = getCell(e)
       if (!cell) return
-      const { activeTool = 'freehand', onCellPaint } = optionsRef.current
+      const { activeTool = 'freehand', onCellPaint, onStrokeStart } = optionsRef.current
+      onStrokeStart?.()
       if (activeTool === 'freehand' || activeTool === 'eraser') {
         onCellPaint?.(cell.row, cell.col)
       } else if (activeTool === 'line') {
@@ -170,7 +189,7 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
     function onPointerUp(e: PointerEvent) {
       if (!isDragging) return
       isDragging = false
-      const { activeTool = 'freehand', onLinePaint } = optionsRef.current
+      const { activeTool = 'freehand', onLinePaint, onStrokeEnd } = optionsRef.current
       if (activeTool === 'line' && lineStart) {
         const cell = getCell(e)
         const end = cell ?? lineStart
@@ -179,6 +198,7 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
         lineStart = null
         drawRef.current?.()  // clear preview
       }
+      onStrokeEnd?.()
     }
 
     canvas.addEventListener('pointerdown', onPointerDown)
@@ -197,4 +217,4 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
   return canvasRef
 }
 
-export { CELL_SIZE }
+export { CELL_SIZE, ROW_NUM_WIDTH }
