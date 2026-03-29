@@ -312,7 +312,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Account for the number column width so grid cells are not obscured
   - Commit: row numbers visible on all three pattern grids
 
-- [ ] **T044** — Move yarn slots to pattern editor left edge
+- [x] **T044** — Move yarn slots to pattern editor left edge
   - Remove `YarnSlots` from the bottom of `YarnCatalogPanel` (left panel)
   - Render `YarnSlots` vertically along the left edge of `PatternDesignerPanel` (center panel)
   - Slots stack top-to-bottom; the active slot is visually highlighted as before

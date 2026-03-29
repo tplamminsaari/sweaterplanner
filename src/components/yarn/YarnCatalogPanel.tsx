@@ -4,7 +4,6 @@ import { hardcodedYarnCatalog } from '@/services/hardcoded-yarn-catalog'
 import { BrandSelector } from './BrandSelector'
 import { YarnTypeSelector } from './YarnTypeSelector'
 import { ColorPalette } from './ColorPalette'
-import { YarnSlots } from './YarnSlots'
 
 export function YarnCatalogPanel() {
   const catalog = useYarnStore((s) => s.catalog)
@@ -67,7 +66,6 @@ export function YarnCatalogPanel() {
         onSelect={setSelectedTypeId}
       />
       <ColorPalette colors={visibleColors} />
-      <YarnSlots />
     </div>
   )
 }

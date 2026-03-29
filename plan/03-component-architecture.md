@@ -41,15 +41,15 @@ src/
     │   ├── YarnCatalog.tsx         # Root of left panel
     │   ├── BrandSelector.tsx       # Brand tabs or list
     │   ├── YarnTypeSelector.tsx    # Yarn type list within brand
-    │   ├── ColorPalette.tsx        # Grid of color swatches
-    │   └── YarnSlots.tsx           # The 5 active yarn slots
+    │   └── ColorPalette.tsx        # Grid of color swatches
     │
     ├── pattern-designer/
     │   ├── PatternDesigner.tsx     # Root of center panel
     │   ├── PatternAreaTabs.tsx     # Tab: shirtTail / sleeveOpening / yoke
     │   ├── PatternGrid.tsx         # Canvas-based grid editor
     │   ├── GridSizeControls.tsx    # Row/col sliders or inputs (disabled for yoke)
-    │   └── DrawingToolbar.tsx      # Tool selector (freehand / line / eraser) + fill-all
+    │   ├── DrawingToolbar.tsx      # Tool selector (freehand / line / eraser) + fill-all
+    │   └── ../yarn/YarnSlots.tsx   # 5 yarn slots rendered vertically on the left edge
     │
     └── sweater-preview/
         ├── SweaterPreview.tsx      # Root of right panel
@@ -116,7 +116,7 @@ Side effect: renders sweater silhouette + texture-mapped patterns
 ## State Flow
 
 ```
-User clicks a slot in YarnSlots
+User clicks a slot in YarnSlots (vertical column on left edge of PatternDesignerPanel)
   → yarn-store: setActiveSlotIndex(slotIndex)   // switches which slot is being painted
 
 User clicks a color in ColorPalette
