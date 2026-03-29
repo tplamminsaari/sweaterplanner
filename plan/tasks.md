@@ -236,7 +236,7 @@ committable increment. Later tasks will be refined as implementation progresses.
 
 ## Phase 10 — UX Improvements
 
-- [ ] **T032** — Resizable left and right panels
+- [x] **T032** — Resizable left and right panels
   - Left panel (Yarn Catalog, default 260px) and right panel (Sweater Preview, default 320px)
     should be draggable to resize
   - Add drag handle between left/center and center/right panels
@@ -245,7 +245,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Check the architecture description in plan-directory and update that if needed because of this task.
   - Commit: both panels resizable by dragging the divider
 
-- [ ] **T033** — Texture-based sweater preview
+- [x] **T033** — Texture-based sweater preview
   - Replace the current geometric canvas preview with a photo-realistic texture renderer
   - **Asset setup**: copy `dist/assets/sweater-texture.png` to `public/sweater-texture.png`
     so it is available as a static asset at runtime
@@ -273,18 +273,94 @@ committable increment. Later tasks will be refined as implementation progresses.
     - `plan/assets/sweater-texture.png`
   - Commit: preview uses real sweater texture with correct zone coloring
 
-- [ ] **T034** — Smaller color swatches in the yarn catalog
+- [x] **T034** — Smaller color swatches in the yarn catalog (fixed: use fixed 16px size)
   - Reduce swatch size in `ColorPalette.tsx` so more colors are visible without scrolling
   - Show color name on hover (tooltip or title attribute) instead of always-visible label
   - Commit: color palette more compact, all colors visible at a glance
 
-- [ ] **T034** — Row numbers on pattern grids
+- [x] **T046** — Undo functionality for pattern painting
+  - Add an undo stack to pattern-store (not persisted): stores snapshots of cell state before each paint action
+  - Actions that push to the stack: `setCellColor`, `fillPattern`, `resizeGrid`
+  - Add `undo()` store action: pops the latest snapshot and restores the affected grid cells
+  - Limit stack depth to a reasonable max (e.g. 50 entries) to avoid unbounded memory use
+  - Add an Undo button as the leftmost button in `DrawingToolbar.tsx`
+  - Add a small gap (CSS `gap` or margin) between the Undo button and the drawing tool buttons (Freehand / Line / Eraser / Fill)
+  - Undo button is disabled when the stack is empty
+  - Bind `Ctrl+Z` (and `Cmd+Z` on Mac) to undo via a global `keydown` listener (e.g. in a `useEffect` in `App.tsx` or a dedicated hook)
+  - Commit: undo works for all paint operations; button disabled when nothing to undo; Ctrl+Z triggers undo
+
+- [x] **T045** — Move Fill button next to Eraser in drawing toolbar
+  - In `DrawingToolbar.tsx`, move the Fill button inside the `drawing-toolbar__tools` div,
+    after the Eraser button, instead of being a separate right-aligned element
+  - Commit: Fill button grouped with the other tool buttons
+
+- [x] **T043** — Defer sweater preview updates until drawing stops
+  - The preview re-renders on every `setCellColor` dispatch, causing lag during freehand
+    painting and line drawing because the texture tiling runs synchronously per cell change
+  - Add an `isDrawing` flag to pattern-store (not persisted) that is set `true` on pointer-down
+    and `false` on pointer-up / pointer-cancel in `useCanvasGrid`
+  - `SweaterCanvas` (or `useSweaterRenderer`) should skip re-rendering while `isDrawing` is
+    true and trigger one final render when `isDrawing` flips back to false
+  - No debounce timer needed — the render fires exactly once per completed stroke
+  - Commit: preview stays static during drawing, updates immediately on mouse/touch release
+
+- [x] **T034** — Row numbers on pattern grids
   - Render row numbers along the left edge of each pattern grid canvas in `useCanvasGrid`
   - Numbering goes bottom-up (row 1 at canvas bottom), matching knitting convention
   - Use a muted, low-contrast color (e.g. ~40% opacity of the text color) so numbers
     are readable without competing with the pattern
   - Account for the number column width so grid cells are not obscured
   - Commit: row numbers visible on all three pattern grids
+
+- [ ] **T044** — Move yarn slots to pattern editor left edge
+  - Remove `YarnSlots` from the bottom of `YarnCatalogPanel` (left panel)
+  - Render `YarnSlots` vertically along the left edge of `PatternDesignerPanel` (center panel)
+  - Slots stack top-to-bottom; the active slot is visually highlighted as before
+  - Clicking a slot still calls `setActiveSlotIndex`; clicking an active slot still clears it
+  - The pattern grid and its toolbar remain to the right of the slot column; the slot column
+    width should be narrow (roughly the size of one slot indicator) so it doesn't eat into
+    the grid area
+  - Update `plan/03-component-architecture.md` to reflect the new slot location
+  - Commit: yarn slots visible alongside the pattern editor, yarn catalog panel freed of slots
+
+- [x] **T041** — Zoomable sweater preview
+  - Add pinch-to-zoom and scroll-wheel zoom to the sweater preview canvas
+  - Add click-and-drag panning when zoomed in
+  - Show a zoom reset button (or double-click to reset) that returns to fit-to-panel view
+  - Implement entirely in `SweaterPreviewPanel.tsx` / `SweaterCanvas.tsx` with pointer and wheel events — no library dependency
+  - Enforce a reasonable zoom range (e.g. 1×–5×); panning clamped so the sweater cannot be scrolled fully out of view
+  - Commit: preview zoomable and pannable, resets on double-click
+
+- [x] **T042** — Fix: tile pattern grids onto texture preview zones
+  - **Root cause**: `useSweaterRenderer` currently calls `dominantColor()` per zone and fills
+    the entire zone with a single solid `multiply` tint. This means painted cells in the pattern
+    editor have no visual effect beyond shifting the dominant-color calculation — the actual
+    stitch pattern is never drawn onto the preview.
+  - **Fix**: for each patterned zone (yoke, tail pattern, sleeve pattern), replace the
+    single-color fill with a proper per-cell tiled render:
+    - Divide the zone rectangle into a grid of cells matching the pattern repeat
+    - For each cell, fill it with the assigned slot color (or slot 1 / base color for empty cells)
+    - Apply each cell fill with `globalCompositeOperation = 'multiply'` so the knit texture
+      shows through the color
+    - Tile the repeat horizontally (and vertically for yoke) to fill the zone
+  - Solid-color zones (body, ribbing, neck ribbing, plain sleeve/body body) keep the current
+    single-color multiply fill — only the three pattern zones need per-cell rendering
+  - The yoke zone must account for the stepped trapezoid shape: column-skip bands should be
+    respected so inactive columns are filled with the base color (same as the non-yoke body)
+  - Commit: pattern grid cells visually projected onto the sweater preview texture correctly
+
+- [ ] **T047** — Yoke pattern editor: show all rows with skip annotations
+  - The size selector must NOT affect which rows are visible or paintable in the yoke pattern editor
+  - All rows are always shown for all sizes — the editor represents the full yoke grid
+  - For rows that are skipped on one or more sizes (per `YOKE_ROW_SKIP_SIZES` data in T035),
+    render a text label to the left of that row in the canvas indicating which sizes skip it
+    (e.g. "skip: S M L" or similar compact notation)
+  - The annotation should be visually distinct but unobtrusive — muted color, small font
+  - Row numbers (T034) and skip annotations can share the left-edge label area; keep them readable
+  - The editor remains fully paintable on all rows regardless of size selection
+  - Note: T035 still applies to `useSweaterRenderer` (the preview skips rows per size), but the
+    editor behavior described in T035's last bullet is replaced by this task's approach
+  - Commit: yoke editor shows all rows with per-row size-skip annotations; size selector has no effect on editor
 
 - [ ] **T035** — Implement yoke row skipping per size
   - The existing `YOKE_ROW_MIN_SIZE` type assumes a simple minimum-size threshold, but the
@@ -313,6 +389,58 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Also print a compact full table (all sizes × all affected rows) so the knitter
     can see the complete picture at a glance
   - Commit: instructions include accurate per-size yoke row skip info
+
+- [ ] **T038** — Plan: user-defined yoke decrease schedule editor
+  - Design the data model for user-defined decrease entries:
+    - `DecreaseEntry { col: number; fromRow: number }` — this column is inactive from `fromRow` upward in the 12-col repeat
+    - Replace or augment `YOKE_COLUMN_SKIP_SCHEDULE` with a user-editable `decreaseSchedule: DecreaseEntry[]`
+  - Define the adjacency constraint: no two columns that share an overlapping active row range may both be marked decreased simultaneously (enforces at-most k2tog — only one stitch is knitted together with its neighbor at any given row)
+  - Design the color-backup mechanism: when a cell column is marked as decreased, persist any existing cell colors for that (col, row≥fromRow) range so they can be restored if the user removes the decrease
+  - Design the yoke shape editing mode UX:
+    - A "Decrease Schedule" toggle button in the yoke tab toolbar switches between **Pattern mode** (normal painting) and **Decrease mode** (editing the decrease schedule)
+    - In Decrease mode: click a cell to set that column's decrease starting at the clicked row; click again to remove the decrease on that column
+    - Constraint violation feedback: if clicking would create adjacent decreases, highlight the conflict and reject the action
+    - Columns with active decreases shown with a distinct style (different from the existing cross-hatch for predefined skips)
+  - Update `plan/02-data-models.md`: add `DecreaseEntry`, `decreaseSchedule` field, `colorBackup` map, and `yokeEditMode` to the data model descriptions
+  - Update `plan/03-component-architecture.md`: describe the mode toggle, new store fields, updated `useCanvasGrid` inputs, and constraint validation logic
+  - Commit: planning complete, architecture docs updated
+
+- [ ] **T039** — Implement decrease schedule data model and store
+  - Add `DecreaseEntry` type to `src/types/index.ts`
+  - Add to pattern-store:
+    - `yokeDecreaseSchedule: DecreaseEntry[]` — persisted, initially empty (falls back to `YOKE_COLUMN_SKIP_SCHEDULE` display when empty)
+    - `yokeColorBackup: Record<string, number>` — maps `"row,col"` to the slot index that was there before the column was decreased; persisted
+    - `yokeEditMode: "pattern" | "decreases"` — not persisted (always starts in pattern mode)
+  - Add store actions:
+    - `setYokeEditMode(mode)` — switches mode
+    - `addDecrease(col, fromRow)` — validates adjacency constraint, saves any displaced cell colors to `yokeColorBackup`, marks cells inactive; no-op with console warning if constraint violated
+    - `removeDecrease(col)` — removes the entry, restores colors from `yokeColorBackup` for that column
+    - `clearAllDecreases()` — removes all entries, restores all backed-up colors
+  - Export a pure helper `deriveInactiveCells(schedule: DecreaseEntry[]): Set<string>` from a utils file so both `PatternGrid` and `useSweaterRenderer` can use it
+  - Commit: store and data model complete, unit-testable via console
+
+- [ ] **T040** — Implement yoke shape editor mode UI
+  - Add a **"Decrease Schedule"** mode toggle button to the yoke tab's toolbar (visible only when the yoke area is active); dispatches `setYokeEditMode`
+  - In **Decrease mode**, `PatternGrid.tsx` changes click behavior:
+    - Single click on a cell (row, col): if that column has no decrease yet → call `addDecrease(col, row)`; if it already has a decrease starting at a different row → call `removeDecrease(col)` then `addDecrease(col, row)`; if the exact same entry exists → call `removeDecrease(col)` (toggle off)
+    - Drag is disabled in Decrease mode (single-click intent only)
+  - Extend `useCanvasGrid` to accept `decreasedCells?: Set<string>` (the user-set decreases, distinct from `inactiveCells` for predefined skips):
+    - Render `decreasedCells` with a different visual style (e.g. diagonal stripe in a muted accent color) so users can tell predefined vs user-set inactive cells apart
+    - Pointer events on `decreasedCells` in Decrease mode perform the toggle action; in Pattern mode they are treated like predefined inactive cells (non-paintable)
+  - Show a constraint-violation toast / inline error when `addDecrease` rejects due to adjacency conflict
+  - In **Pattern mode**, the user-defined decrease schedule is merged with `YOKE_COLUMN_SKIP_SCHEDULE` to produce the full set of inactive cells passed to `useCanvasGrid`
+  - Update `useSweaterRenderer` to also apply `yokeDecreaseSchedule` when rendering the yoke in the sweater preview (so the preview reflects custom decreases)
+  - Include `yokeDecreaseSchedule` in project export/import (`ProjectExport` type and serialization)
+  - Commit: full decrease schedule editing mode working end-to-end
+
+- [ ] **T048** — "New" button to reset the designer
+  - Add a **New** button to `AppToolbar.tsx`, placed immediately before the size selector
+  - On click, show a confirmation dialog ("This will clear all yarns and patterns. Are you sure?")
+  - On confirm:
+    - Reset yarn slots to their initial state (all slots empty) via a new `resetSlots` action in `yarn-store`
+    - Reset all pattern grids to their initial state via a new `resetPatterns` action in `pattern-store`
+  - On cancel: do nothing
+  - Commit: New button resets yarn slots and patterns to initial state after confirmation
 
 - [ ] **T037** ⚠️ LOW PRIORITY — UI localization (English, Finnish, Swedish)
   - Install `i18next` and `react-i18next`

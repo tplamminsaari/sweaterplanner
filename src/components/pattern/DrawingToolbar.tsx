@@ -13,6 +13,8 @@ export function DrawingToolbar() {
   const setDrawingTool    = usePatternStore((s) => s.setDrawingTool)
   const activeArea        = usePatternStore((s) => s.activeArea)
   const fillPattern       = usePatternStore((s) => s.fillPattern)
+  const undo              = usePatternStore((s) => s.undo)
+  const undoStack         = usePatternStore((s) => s._undoStack)
   const grid              = usePatternStore((s) => s[activeArea])
   const activeSlotIndex   = useYarnStore((s) => s.activeSlotIndex)
 
@@ -26,6 +28,14 @@ export function DrawingToolbar() {
 
   return (
     <div className="drawing-toolbar">
+      <button
+        className="drawing-tool-btn drawing-tool-btn--undo"
+        onClick={undo}
+        disabled={undoStack.length === 0}
+        title="Undo (Ctrl+Z)"
+      >
+        Undo
+      </button>
       <div className="drawing-toolbar__tools">
         {TOOLS.map(({ tool, label }) => (
           <button
@@ -36,10 +46,10 @@ export function DrawingToolbar() {
             {label}
           </button>
         ))}
+        <button className="drawing-tool-btn drawing-tool-btn--fill" onClick={handleFill}>
+          Fill
+        </button>
       </div>
-      <button className="drawing-tool-btn drawing-tool-btn--fill" onClick={handleFill}>
-        Fill
-      </button>
     </div>
   )
 }

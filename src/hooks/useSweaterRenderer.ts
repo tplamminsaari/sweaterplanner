@@ -1,22 +1,129 @@
 import { useEffect, useRef } from 'react'
 import type { RefObject } from 'react'
-import type { SweaterGeometry, PatternGrid } from '../types'
+import type { PatternGrid } from '../types'
 import { yokeInactiveColsForRow } from '../types'
 
-const BG            = '#1a1a1e'
-const FALLBACK_COLOR = '#4a4a5a'
+// ── Zone definitions ───────────────────────────────────────────
+// Each zone is [x, y, w, h] as fractions of the 1000×1000 texture image.
+// Derived from analysis of plan/assets/sweater-structure.png.
+const Z = {
+  neckRibbing:         [0.312, 0.063, 0.398, 0.041] as const,
 
-// Yoke band definitions derived from YOKE_COLUMN_SKIP_SCHEDULE
-const YOKE_BANDS: { fromFrac: number; activeFrac: number }[] = [
-  { fromFrac: 0,         activeFrac: 12 / 12 },
-  { fromFrac: 21 / 56,   activeFrac: 10 / 12 },
-  { fromFrac: 36 / 56,   activeFrac:  8 / 12 },
-  { fromFrac: 43 / 56,   activeFrac:  7 / 12 },
-  { fromFrac: 47 / 56,   activeFrac:  6 / 12 },
-  { fromFrac: 51 / 56,   activeFrac:  5 / 12 },
-  { fromFrac: 54 / 56,   activeFrac:  4 / 12 },
-]
+  yoke:                [0.111, 0.104, 0.766, 0.260] as const,
 
+  body:                [0.300, 0.364, 0.390, 0.469] as const,
+  tailPattern:         [0.300, 0.833, 0.390, 0.031] as const,
+  bodyRibbing:         [0.300, 0.864, 0.390, 0.069] as const,
+
+  leftSleeve:          [0.111, 0.364, 0.189, 0.469] as const,
+  leftSleevePattern:   [0.111, 0.833, 0.189, 0.031] as const,
+  leftSleeveRibbing:   [0.111, 0.864, 0.189, 0.085] as const,
+
+  rightSleeve:         [0.690, 0.364, 0.187, 0.469] as const,
+  rightSleevePattern:  [0.690, 0.833, 0.187, 0.031] as const,
+  rightSleeveRibbing:  [0.690, 0.864, 0.187, 0.085] as const,
+}
+
+const CANVAS_SIZE    = 280
+const FALLBACK_COLOR = '#999999'
+
+// ── Texture cache ──────────────────────────────────────────────
+let textureCache: HTMLImageElement | null = null
+let texturePromise: Promise<HTMLImageElement> | null = null
+
+function loadTexture(): Promise<HTMLImageElement> {
+  if (textureCache) return Promise.resolve(textureCache)
+  if (!texturePromise) {
+    texturePromise = new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload  = () => { textureCache = img; resolve(img) }
+      img.onerror = reject
+      img.src = '/sweater-texture.png'
+    })
+  }
+  return texturePromise
+}
+
+// ── Pattern tiling ─────────────────────────────────────────────
+/**
+ * Tile a pattern grid over a rectangular zone using the current compositing
+ * mode (expected to be 'multiply'). Every canvas pixel in the zone is filled
+ * exactly once — no pixel receives two multiply operations.
+ *
+ * Cells are square (height-derived); the pattern tiles horizontally to fill
+ * the zone width. Row 0 of the grid is drawn at the bottom of the zone.
+ *
+ * `inactiveColsFn` — optional; if provided, columns for which it returns
+ * true are filled with baseColor regardless of the painted cell value.
+ * Takes a 1-indexed row number, returns a set of 1-indexed inactive columns.
+ */
+function tilePatternZone(
+  ctx: CanvasRenderingContext2D,
+  grid: PatternGrid,
+  colorMap: Record<number, string>,
+  baseColor: string,
+  zone: readonly [number, number, number, number],
+  inactiveColsFn?: (row1indexed: number) => ReadonlySet<number>,
+) {
+  if (grid.cols === 0 || grid.rows === 0) return
+
+  const zx = zone[0] * CANVAS_SIZE
+  const zy = zone[1] * CANVAS_SIZE
+  const zw = zone[2] * CANVAS_SIZE
+  const zh = zone[3] * CANVAS_SIZE
+
+  const rows      = grid.rows
+  const cols      = grid.cols
+  // Fit cell height to zone; use square cells; tile to fill width
+  const cellH     = zh / rows
+  const repeats   = Math.max(1, Math.round(zw / Math.max(1, cellH * cols)))
+  const totalCols = repeats * cols   // total column slots across the zone
+
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(zx, zy, zw, zh)
+  ctx.clip()
+
+  for (let rep = 0; rep < repeats; rep++) {
+    for (let c = 0; c < cols; c++) {
+      const colIdx = rep * cols + c
+      // Pixel-aligned x span — ensures no gaps and no overlap between cols
+      const x1 = zx + Math.round(colIdx       * zw / totalCols)
+      const x2 = zx + Math.round((colIdx + 1) * zw / totalCols)
+
+      for (let r = 0; r < rows; r++) {
+        // row 0 = bottom of knitting → canvas bottom
+        const canvasRow = rows - 1 - r
+        const y1 = zy + Math.round(canvasRow       * zh / rows)
+        const y2 = zy + Math.round((canvasRow + 1) * zh / rows)
+
+        const inactive = inactiveColsFn ? inactiveColsFn(r + 1).has(c + 1) : false
+        const slot     = inactive ? 0 : (grid.cells[r]?.[c] ?? 0)
+        ctx.fillStyle  = slot > 0 ? (colorMap[slot] ?? baseColor) : baseColor
+        ctx.fillRect(x1, y1, x2 - x1, y2 - y1)
+      }
+    }
+  }
+
+  ctx.restore()
+}
+
+// ── Solid zone fill ────────────────────────────────────────────
+function fillZone(
+  ctx: CanvasRenderingContext2D,
+  zone: readonly [number, number, number, number],
+  color: string,
+) {
+  ctx.fillStyle = color
+  ctx.fillRect(
+    zone[0] * CANVAS_SIZE,
+    zone[1] * CANVAS_SIZE,
+    zone[2] * CANVAS_SIZE,
+    zone[3] * CANVAS_SIZE,
+  )
+}
+
+// ── Public interface ───────────────────────────────────────────
 interface Patterns {
   shirtTail: PatternGrid
   sleeveOpening: PatternGrid
@@ -24,8 +131,7 @@ interface Patterns {
 }
 
 interface UseSweaterRendererOptions {
-  geometry: SweaterGeometry
-  colorMap: Record<number, string>  // slotIndex (1-based) → hex
+  colorMap: Record<number, string>   // slotIndex (1-based) → hex
   patterns: Patterns
 }
 
@@ -33,200 +139,65 @@ export function useSweaterRenderer(
   options: UseSweaterRendererOptions,
 ): RefObject<HTMLCanvasElement | null> {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { geometry: g, colorMap, patterns } = options
+  const { colorMap, patterns } = options
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
+
+    canvas.width  = CANVAS_SIZE
+    canvas.height = CANVAS_SIZE
+
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const bodyColor = colorMap[1] ?? FALLBACK_COLOR
+    const baseColor = colorMap[1] ?? FALLBACK_COLOR
 
-    const PAD         = 12
-    const totalWidth  = g.sleeveWidthPx + g.bodyWidthPx + g.sleeveWidthPx
-    const bodyTotalH  = g.bodyHeightPx + g.yokeHeightPx + g.neckRibbingHeightPx
-    const sleeveTop   = bodyTotalH - g.sleeveLengthPx
-    const totalHeight = Math.max(bodyTotalH, sleeveTop + g.sleeveLengthPx)
+    function render(texture: HTMLImageElement) {
+      // 1. Dark background
+      ctx!.globalCompositeOperation = 'source-over'
+      ctx!.fillStyle = '#1a1a1e'
+      ctx!.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
 
-    canvas.width  = Math.ceil(totalWidth  + PAD * 2)
-    canvas.height = Math.ceil(totalHeight + PAD * 2)
+      // 2. Knit texture (alpha channel clips it to the sweater silhouette)
+      ctx!.globalCompositeOperation = 'source-over'
+      ctx!.drawImage(texture, 0, 0, CANVAS_SIZE, CANVAS_SIZE)
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = BG
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
+      // 3. Tint each zone via multiply — every pixel receives exactly one
+      //    multiply operation so colors don't compound.
+      ctx!.globalCompositeOperation = 'multiply'
 
-    const ox    = PAD
-    const oy    = PAD
-    const bodyX = ox + g.sleeveWidthPx
-    const bodyY = oy
+      // Solid zones (single color, no pattern)
+      fillZone(ctx!, Z.neckRibbing,  baseColor)
+      fillZone(ctx!, Z.body,         baseColor)
+      fillZone(ctx!, Z.bodyRibbing,  baseColor)
+      fillZone(ctx!, Z.leftSleeve,   baseColor)
+      fillZone(ctx!, Z.leftSleeveRibbing,  baseColor)
+      fillZone(ctx!, Z.rightSleeve,  baseColor)
+      fillZone(ctx!, Z.rightSleeveRibbing, baseColor)
 
-    // ── Body base (below yoke) ────────────────────────────────────
-    const bodyBaseY = bodyY + g.yokeHeightPx + g.neckRibbingHeightPx
-    ctx.fillStyle = bodyColor
-    ctx.fillRect(bodyX, bodyBaseY, g.bodyWidthPx, g.bodyHeightPx)
+      // Patterned zones — each cell tiled from the grid
+      tilePatternZone(ctx!, patterns.yoke, colorMap, baseColor,
+        Z.yoke, yokeInactiveColsForRow)
 
-    // ── Shirt tail pattern (above hem ribbing) ────────────────────
-    const hemPatternY = bodyBaseY + g.bodyHeightPx
-                        - g.shirtTailRibbingHeightPx
-                        - g.shirtTailPatternHeightPx
-    drawTiledPattern(ctx, patterns.shirtTail, colorMap, bodyColor,
-      bodyX, hemPatternY, g.bodyWidthPx, g.shirtTailPatternHeightPx)
+      tilePatternZone(ctx!, patterns.shirtTail, colorMap, baseColor,
+        Z.tailPattern)
 
-    // ── Hem ribbing ───────────────────────────────────────────────
-    ctx.fillStyle = bodyColor
-    ctx.fillRect(bodyX, bodyBaseY + g.bodyHeightPx - g.shirtTailRibbingHeightPx,
-      g.bodyWidthPx, g.shirtTailRibbingHeightPx)
+      tilePatternZone(ctx!, patterns.sleeveOpening, colorMap, baseColor,
+        Z.leftSleevePattern)
 
-    // ── Left sleeve ───────────────────────────────────────────────
-    ctx.fillStyle = bodyColor
-    ctx.fillRect(ox, oy + sleeveTop, g.sleeveWidthPx, g.sleeveLengthPx)
+      tilePatternZone(ctx!, patterns.sleeveOpening, colorMap, baseColor,
+        Z.rightSleevePattern)
 
-    // sleeve opening pattern (above sleeve ribbing)
-    const sleevePatternY = oy + sleeveTop + g.sleeveLengthPx
-                           - g.sleeveOpeningRibbingHeightPx
-                           - g.sleeveOpeningPatternHeightPx
-    drawTiledPattern(ctx, patterns.sleeveOpening, colorMap, bodyColor,
-      ox, sleevePatternY, g.sleeveWidthPx, g.sleeveOpeningPatternHeightPx)
+      // 4. Reset composite mode
+      ctx!.globalCompositeOperation = 'source-over'
+    }
 
-    // sleeve ribbing
-    ctx.fillStyle = bodyColor
-    ctx.fillRect(ox, oy + sleeveTop + g.sleeveLengthPx - g.sleeveOpeningRibbingHeightPx,
-      g.sleeveWidthPx, g.sleeveOpeningRibbingHeightPx)
-
-    // ── Right sleeve ──────────────────────────────────────────────
-    const rightSleeveX = bodyX + g.bodyWidthPx
-    ctx.fillStyle = bodyColor
-    ctx.fillRect(rightSleeveX, oy + sleeveTop, g.sleeveWidthPx, g.sleeveLengthPx)
-
-    drawTiledPattern(ctx, patterns.sleeveOpening, colorMap, bodyColor,
-      rightSleeveX, sleevePatternY, g.sleeveWidthPx, g.sleeveOpeningPatternHeightPx)
-
-    ctx.fillStyle = bodyColor
-    ctx.fillRect(rightSleeveX,
-      oy + sleeveTop + g.sleeveLengthPx - g.sleeveOpeningRibbingHeightPx,
-      g.sleeveWidthPx, g.sleeveOpeningRibbingHeightPx)
-
-    // ── Yoke (stepped trapezoid with pattern) ─────────────────────
-    const yokeBottomY = bodyY + g.neckRibbingHeightPx + g.yokeHeightPx
-    drawYokePattern(ctx, patterns.yoke, colorMap, bodyColor,
-      bodyX, yokeBottomY, g)
-
-    // ── Neck ribbing ──────────────────────────────────────────────
-    const neckX = bodyX + (g.bodyWidthPx - g.yokeTopWidthPx) / 2
-    ctx.fillStyle = bodyColor
-    ctx.fillRect(neckX, bodyY, g.yokeTopWidthPx, g.neckRibbingHeightPx)
-
-  }, [g, colorMap, patterns])
+    loadTexture().then(render).catch(() => {
+      ctx!.fillStyle = baseColor
+      ctx!.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+    })
+  }, [colorMap, patterns])
 
   return canvasRef
-}
-
-/**
- * Tile a pattern grid horizontally across a rectangular area.
- * Cells with value 0 show the baseColor. Row 0 = bottom of pattern.
- */
-function drawTiledPattern(
-  ctx: CanvasRenderingContext2D,
-  grid: PatternGrid,
-  colorMap: Record<number, string>,
-  baseColor: string,
-  areaX: number,
-  areaY: number,
-  areaW: number,
-  areaH: number,
-) {
-  if (grid.cols === 0 || grid.rows === 0) return
-
-  const cellW = areaW / Math.round(areaW / (areaW / grid.cols))
-  // cellW = areaW / (number of full repeats * cols)
-  // Simpler: fit as many full repeats as possible, stretch to fill exactly
-  const repeats  = Math.max(1, Math.round(areaW / (areaH / grid.rows * grid.cols)))
-  const cellWpx  = areaW / (repeats * grid.cols)
-  const cellHpx  = areaH / grid.rows
-
-  void cellW  // suppress unused warning
-
-  for (let rep = 0; rep < repeats; rep++) {
-    for (let r = 0; r < grid.rows; r++) {
-      // row 0 = bottom → drawn at bottom of area
-      const canvasRow = grid.rows - 1 - r
-      const y = areaY + canvasRow * cellHpx
-      for (let c = 0; c < grid.cols; c++) {
-        const x = areaX + (rep * grid.cols + c) * cellWpx
-        const slot = grid.cells[r]?.[c] ?? 0
-        ctx.fillStyle = slot > 0 ? (colorMap[slot] ?? baseColor) : baseColor
-        ctx.fillRect(Math.round(x), Math.round(y), Math.ceil(cellWpx), Math.ceil(cellHpx))
-      }
-    }
-  }
-}
-
-/**
- * Draw the yoke as a stepped trapezoid, rendering each band's
- * pattern rows tiled horizontally at the appropriate width.
- */
-function drawYokePattern(
-  ctx: CanvasRenderingContext2D,
-  grid: PatternGrid,
-  colorMap: Record<number, string>,
-  baseColor: string,
-  bodyX: number,
-  yokeBottomY: number,
-  g: SweaterGeometry,
-) {
-  const totalRows = grid.rows  // 56
-
-  for (let bandIdx = 0; bandIdx < YOKE_BANDS.length; bandIdx++) {
-    const band     = YOKE_BANDS[bandIdx]
-    const nextFrom = bandIdx + 1 < YOKE_BANDS.length
-      ? YOKE_BANDS[bandIdx + 1].fromFrac : 1
-    const bandHeightFrac = nextFrom - band.fromFrac
-    const bandH   = bandHeightFrac * g.yokeHeightPx
-    const bandW   = band.activeFrac * g.yokeBottomWidthPx
-    const bandX   = bodyX + (g.yokeBottomWidthPx - bandW) / 2
-    // row 0 = bottom → band 0 is at the bottom of the yoke
-    const bandY   = yokeBottomY - (band.fromFrac + bandHeightFrac) * g.yokeHeightPx
-
-    // Fill base color first
-    ctx.fillStyle = baseColor
-    ctx.fillRect(Math.round(bandX), Math.round(bandY),
-      Math.round(bandW), Math.ceil(bandH))
-
-    // Grid rows that fall in this band (1-indexed)
-    const rowStart = Math.round(band.fromFrac * totalRows) + 1
-    const rowEnd   = Math.round((band.fromFrac + bandHeightFrac) * totalRows)
-    const bandRows = rowEnd - rowStart + 1
-    if (bandRows <= 0) continue
-
-    const cellHpx = bandH / bandRows
-
-    // How many 12-col repeats fit at this band width
-    const activeColsThisBand = Math.round(band.activeFrac * grid.cols)
-    const repeats = Math.max(1, Math.round(bandW / (cellHpx * activeColsThisBand)))
-    const cellWpx = bandW / (repeats * activeColsThisBand)
-
-    // Build active column list for a representative row in this band
-    const inactiveCols = yokeInactiveColsForRow(rowStart)
-
-    let repColIdx = 0
-    for (let rep = 0; rep < repeats; rep++) {
-      for (let c = 1; c <= grid.cols; c++) {
-        if (inactiveCols.has(c)) continue
-        const x = Math.round(bandX + repColIdx * cellWpx)
-        repColIdx++
-
-        for (let r = rowStart; r <= rowEnd; r++) {
-          // row 0 = bottom; in canvas, higher row index = higher on canvas = lower y
-          const canvasRowInBand = rowEnd - r  // 0 = top of band
-          const y = Math.round(bandY + canvasRowInBand * cellHpx)
-          const slot = grid.cells[r - 1]?.[c - 1] ?? 0
-          ctx.fillStyle = slot > 0 ? (colorMap[slot] ?? baseColor) : baseColor
-          ctx.fillRect(x, y, Math.ceil(cellWpx), Math.ceil(cellHpx))
-        }
-      }
-      repColIdx = rep === 0 ? repColIdx : repColIdx  // reset per-rep
-      if (rep < repeats - 1) repColIdx = (rep + 1) * activeColsThisBand
-    }
-  }
 }

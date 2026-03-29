@@ -35,10 +35,7 @@ src/
 └── components/
     ├── layout/
     │   ├── AppToolbar.tsx          # Size selector, Export, Import, Download Instr.
-    │   ├── ThreePanelLayout.tsx
-    │   ├── LeftPanel.tsx
-    │   ├── CenterPanel.tsx
-    │   └── RightPanel.tsx
+    │   └── ThreePanelLayout.tsx    # Manages left/right widths; renders drag dividers
     │
     ├── yarn-catalog/
     │   ├── YarnCatalog.tsx         # Root of left panel
@@ -66,6 +63,13 @@ src/
 - Initializes stores
 - Renders `ThreePanelLayout`
 - On first load: calls `YarnCatalogService.getBrands()` etc. and populates yarn store
+
+### `ThreePanelLayout.tsx`
+- Owns `leftWidth` and `rightWidth` state (initial: 260px, 320px)
+- Renders a `.panel-divider` drag handle between left/center and center/right panels
+- Drag handles use pointer capture (`setPointerCapture`) to track moves outside the element
+- Enforces min/max constraints: left 180–400px, right 220–500px
+- Panel widths applied via inline `style` so the center panel takes all remaining flex space
 
 ### `PatternGrid.tsx`
 - Receives `PatternGrid` data and `YarnSlots` color map from store
