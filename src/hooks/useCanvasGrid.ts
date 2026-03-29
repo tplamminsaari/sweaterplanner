@@ -4,13 +4,15 @@ import { bresenhamLine } from '@/utils/bresenham'
 import type { DrawingTool } from '@/types'
 
 const CELL_SIZE = 20
-const ROW_NUM_WIDTH = 24   // pixels reserved for row number labels on the left
+const ROW_NUM_WIDTH = 24          // label width without annotations
+const ANNOTATED_ROW_NUM_WIDTH = 48 // label width when row skip annotations are shown
 const GRID_LINE_COLOR = 'rgba(255,255,255,0.08)'
 const INACTIVE_FILL = 'rgba(0,0,0,0.5)'
 const INACTIVE_HATCH_COLOR = 'rgba(255,255,255,0.15)'
 const EMPTY_FILL = '#2c2c32'
 const PREVIEW_ALPHA = 0.55
 const ROW_NUM_COLOR = 'rgba(255,255,255,0.35)'
+const ANNOTATION_COLOR = 'rgba(255,255,255,0.22)'
 
 /** Convert a canvas-space Y pixel to a 0-indexed grid row (row 0 = bottom). */
 function pixelToGridRow(canvasY: number, rows: number): number {
@@ -28,6 +30,11 @@ interface UseCanvasGridOptions {
   cells: number[][]
   colorMap: Record<number, string>     // slotIndex → hex color (0 = empty)
   inactiveCells?: ReadonlySet<string>  // "row,col" keys (1-indexed row, 1-indexed col)
+  /**
+   * Per-row annotation text shown in the left label area (1-indexed row → text).
+   * When provided, the label area widens to ANNOTATED_ROW_NUM_WIDTH.
+   */
+  rowSkipAnnotations?: ReadonlyMap<number, string>
   activeTool?: DrawingTool
   /** Called once at the start of each paint stroke (before any cells are changed). */
   onStrokeStart?: () => void
@@ -43,7 +50,10 @@ interface UseCanvasGridOptions {
 
 export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanvasElement | null> {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { cols, rows, cells, colorMap, inactiveCells } = options
+  const { cols, rows, cells, colorMap, inactiveCells, rowSkipAnnotations } = options
+  const labelWidth = rowSkipAnnotations && rowSkipAnnotations.size > 0
+    ? ANNOTATED_ROW_NUM_WIDTH
+    : ROW_NUM_WIDTH
 
   // Stable refs for callbacks and mutable state
   const optionsRef = useRef(options)
@@ -60,7 +70,7 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
     if (!ctx) return
 
     function draw(preview?: { row: number; col: number }[]) {
-      const w = ROW_NUM_WIDTH + cols * CELL_SIZE
+      const w = labelWidth + cols * CELL_SIZE
       const h = rows * CELL_SIZE
       canvas!.width = w
       canvas!.height = h
@@ -76,7 +86,7 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
         const gridRow1 = r + 1
 
         for (let c = 0; c < cols; c++) {
-          const x = ROW_NUM_WIDTH + c * CELL_SIZE
+          const x = labelWidth + c * CELL_SIZE
           const gridCol1 = c + 1
           const inactive = inactiveCells?.has(`${gridRow1},${gridCol1}`) ?? false
           const slotIndex = cells[r]?.[c] ?? 0
@@ -109,7 +119,7 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
       ctx!.strokeStyle = GRID_LINE_COLOR
       ctx!.lineWidth = 1
       for (let c = 0; c <= cols; c++) {
-        const x = ROW_NUM_WIDTH + c * CELL_SIZE + 0.5
+        const x = labelWidth + c * CELL_SIZE + 0.5
         ctx!.beginPath()
         ctx!.moveTo(x, 0)
         ctx!.lineTo(x, rows * CELL_SIZE)
@@ -117,26 +127,42 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
       }
       for (let r = 0; r <= rows; r++) {
         ctx!.beginPath()
-        ctx!.moveTo(ROW_NUM_WIDTH, r * CELL_SIZE + 0.5)
+        ctx!.moveTo(labelWidth, r * CELL_SIZE + 0.5)
         ctx!.lineTo(w, r * CELL_SIZE + 0.5)
         ctx!.stroke()
       }
 
-      // Row numbers (bottom-up, 1-indexed)
-      ctx!.fillStyle = ROW_NUM_COLOR
-      ctx!.font = '9px sans-serif'
+      // Row numbers and optional skip annotations (bottom-up, 1-indexed)
+      const hasAnnotations = rowSkipAnnotations && rowSkipAnnotations.size > 0
       ctx!.textAlign = 'right'
-      ctx!.textBaseline = 'middle'
       for (let r = 0; r < rows; r++) {
         const canvasRow = rows - 1 - r
-        const y = canvasRow * CELL_SIZE + CELL_SIZE / 2
-        ctx!.fillText(String(r + 1), ROW_NUM_WIDTH - 3, y)
+        const cellTop = canvasRow * CELL_SIZE
+        const gridRow1 = r + 1
+        const annotation = rowSkipAnnotations?.get(gridRow1)
+
+        if (hasAnnotations && annotation) {
+          // Two-line: row number on top, annotation below
+          ctx!.fillStyle = ROW_NUM_COLOR
+          ctx!.font = '8px sans-serif'
+          ctx!.textBaseline = 'alphabetic'
+          ctx!.fillText(String(gridRow1), labelWidth - 3, cellTop + 9)
+          ctx!.fillStyle = ANNOTATION_COLOR
+          ctx!.font = '6px sans-serif'
+          ctx!.fillText(annotation, labelWidth - 3, cellTop + 18)
+        } else {
+          // Single centered row number
+          ctx!.fillStyle = ROW_NUM_COLOR
+          ctx!.font = '9px sans-serif'
+          ctx!.textBaseline = 'middle'
+          ctx!.fillText(String(gridRow1), labelWidth - 3, cellTop + CELL_SIZE / 2)
+        }
       }
     }
 
     drawRef.current = draw
     draw()
-  }, [cols, rows, cells, colorMap, inactiveCells])
+  }, [cols, rows, cells, colorMap, inactiveCells, rowSkipAnnotations, labelWidth])
 
   // Pointer event handling
   useEffect(() => {
@@ -150,7 +176,7 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
       const rect = canvas!.getBoundingClientRect()
       const scaleX = canvas!.width / rect.width
       const scaleY = canvas!.height / rect.height
-      const x = (e.clientX - rect.left) * scaleX - ROW_NUM_WIDTH
+      const x = (e.clientX - rect.left) * scaleX - labelWidth
       const y = (e.clientY - rect.top) * scaleY
       const col = pixelToGridCol(x)
       const row = pixelToGridRow(y, rows)
@@ -212,9 +238,9 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
       canvas.removeEventListener('pointerup', onPointerUp)
       canvas.removeEventListener('pointerleave', onPointerUp)
     }
-  }, [cols, rows, inactiveCells])
+  }, [cols, rows, inactiveCells, labelWidth])
 
   return canvasRef
 }
 
-export { CELL_SIZE, ROW_NUM_WIDTH }
+export { CELL_SIZE, ROW_NUM_WIDTH, ANNOTATED_ROW_NUM_WIDTH }

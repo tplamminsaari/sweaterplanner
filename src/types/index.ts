@@ -109,11 +109,20 @@ export function yokeInactiveColsForRow(row: number): ReadonlySet<number> {
 }
 
 /**
- * Minimum size at which each yoke row (1-indexed) is knitted.
+ * Sizes on which each yoke row (1-indexed) is skipped (not knitted).
  * Rows absent from this map are knitted in all sizes.
- * ⚠️ Values are placeholder — needs domain input before Phase 5 (see Q20).
  */
-export const YOKE_ROW_MIN_SIZE: Partial<Record<number, SweaterSize>> = {}
+export const YOKE_ROW_SKIP_SIZES: Partial<Record<number, SweaterSize[]>> = {
+  2:  ['S', 'M', 'L', 'XL', '3XL'],
+  3:  ['S', 'M', 'L'],
+  11: ['S', 'M'],
+  25: ['S'],
+  32: ['S', 'M', 'L', 'XL'],
+  39: ['S'],
+  47: ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
+  50: ['S', 'M', 'L', 'XL', 'XXL'],
+  53: ['S', 'M', 'L'],
+}
 
 // ─── Sweater measurements ─────────────────────────────────────────────────────
 

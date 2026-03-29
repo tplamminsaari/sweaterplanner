@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from 'react'
 import { usePatternStore } from '@/store/pattern-store'
 import { useYarnStore } from '@/store/yarn-store'
-import { useCanvasGrid, CELL_SIZE, ROW_NUM_WIDTH } from '@/hooks/useCanvasGrid'
-import { yokeInactiveColsForRow } from '@/types'
+import { useCanvasGrid, CELL_SIZE, ROW_NUM_WIDTH, ANNOTATED_ROW_NUM_WIDTH } from '@/hooks/useCanvasGrid'
+import { yokeInactiveColsForRow, YOKE_ROW_SKIP_SIZES } from '@/types'
 
 function useYokeInactiveCells(rows: number, cols: number): ReadonlySet<string> {
   return useMemo(() => {
@@ -16,6 +16,12 @@ function useYokeInactiveCells(rows: number, cols: number): ReadonlySet<string> {
     return set
   }, [rows, cols])
 }
+
+const YOKE_ROW_ANNOTATIONS: ReadonlyMap<number, string> = new Map(
+  Object.entries(YOKE_ROW_SKIP_SIZES)
+    .filter(([, sizes]) => sizes && sizes.length > 0)
+    .map(([row, sizes]) => [Number(row), sizes!.join(' ')])
+)
 
 function useColorMap(): Record<number, string> {
   const slots = useYarnStore((s) => s.slots)
@@ -44,6 +50,7 @@ export function PatternGrid() {
 
   const yokeInactive = useYokeInactiveCells(grid.rows, grid.cols)
   const inactiveCells = activeArea === 'yoke' ? yokeInactive : undefined
+  const rowSkipAnnotations = activeArea === 'yoke' ? YOKE_ROW_ANNOTATIONS : undefined
 
   const onCellPaint = useCallback((row: number, col: number) => {
     if (activeDrawingTool === 'freehand') {
@@ -74,6 +81,7 @@ export function PatternGrid() {
     cells: grid.cells,
     colorMap,
     inactiveCells,
+    rowSkipAnnotations,
     activeTool: activeDrawingTool,
     onStrokeStart,
     onStrokeEnd,
@@ -82,15 +90,17 @@ export function PatternGrid() {
     paintSlot: activeSlotIndex + 1,
   })
 
+  const labelWidth = rowSkipAnnotations ? ANNOTATED_ROW_NUM_WIDTH : ROW_NUM_WIDTH
+
   return (
     <div className="pattern-grid-wrapper">
       <canvas
         ref={canvasRef}
         style={{
-          width: ROW_NUM_WIDTH + grid.cols * CELL_SIZE,
+          width: labelWidth + grid.cols * CELL_SIZE,
           height: grid.rows * CELL_SIZE,
           imageRendering: 'pixelated',
-          cursor: activeDrawingTool === 'eraser' ? 'cell' : activeDrawingTool === 'line' ? 'crosshair' : 'crosshair',
+          cursor: activeDrawingTool === 'eraser' ? 'cell' : 'crosshair',
         }}
       />
     </div>

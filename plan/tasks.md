@@ -349,7 +349,7 @@ committable increment. Later tasks will be refined as implementation progresses.
     respected so inactive columns are filled with the base color (same as the non-yoke body)
   - Commit: pattern grid cells visually projected onto the sweater preview texture correctly
 
-- [ ] **T047** — Yoke pattern editor: show all rows with skip annotations
+- [x] **T047** — Yoke pattern editor: show all rows with skip annotations
   - The size selector must NOT affect which rows are visible or paintable in the yoke pattern editor
   - All rows are always shown for all sizes — the editor represents the full yoke grid
   - For rows that are skipped on one or more sizes (per `YOKE_ROW_SKIP_SIZES` data in T035),
