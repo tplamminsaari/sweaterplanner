@@ -425,6 +425,19 @@ select {
   line-height: 0;
 }
 
+.row-tooltip {
+  position: fixed;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 3px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 100;
+}
+
 /* ─── Drawing toolbar ────────────────────────────────────────── */
 .drawing-toolbar {
   display: flex;

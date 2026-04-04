@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
-import type { PatternArea, PatternGrid, DrawingTool } from '../types'
+import type { PatternArea, PatternGrid, DrawingTool, DecreaseEntry } from '../types'
 
 const UNDO_LIMIT = 50
 
@@ -28,6 +28,9 @@ interface PatternState {
   activeDrawingTool: DrawingTool
   _undoStack: GridSnapshot[]
   isDrawing: boolean
+  yokeDecreaseSchedule: DecreaseEntry[]
+  yokeColorBackup: Record<string, number>
+  yokeEditMode: 'pattern' | 'decreases'
 }
 
 interface PatternActions {
@@ -36,10 +39,21 @@ interface PatternActions {
   setCellColor(area: PatternArea, row: number, col: number, slotIndex: number): void
   resizeGrid(area: PatternArea, rows: number, cols: number): void
   fillPattern(area: PatternArea, slotIndex: number): void
-  loadGrids(grids: { shirtTail: PatternGrid; sleeveOpening: PatternGrid; yoke: PatternGrid }): void
+  loadGrids(grids: {
+    shirtTail: PatternGrid
+    sleeveOpening: PatternGrid
+    yoke: PatternGrid
+    yokeDecreaseSchedule?: DecreaseEntry[]
+    yokeColorBackup?: Record<string, number>
+  }): void
   undo(): void
   pushUndoSnapshot(): void
   setIsDrawing(val: boolean): void
+  setYokeEditMode(mode: 'pattern' | 'decreases'): void
+  addDecrease(col: number, fromRow: number): void
+  removeDecrease(col: number): void
+  clearAllDecreases(): void
+  resetPatterns(): void
 }
 
 export const usePatternStore = create<PatternState & PatternActions>()(
@@ -52,6 +66,9 @@ export const usePatternStore = create<PatternState & PatternActions>()(
       activeDrawingTool: 'freehand' as DrawingTool,
       _undoStack: [],
       isDrawing: false,
+      yokeDecreaseSchedule: [],
+      yokeColorBackup: {},
+      yokeEditMode: 'pattern' as const,
 
       pushUndoSnapshot() {
         const { shirtTail, sleeveOpening, yoke, _undoStack } = get()
@@ -108,15 +125,84 @@ export const usePatternStore = create<PatternState & PatternActions>()(
 
       loadGrids(grids) {
         set((state) => {
-          state.shirtTail     = grids.shirtTail
-          state.sleeveOpening = grids.sleeveOpening
-          state.yoke          = grids.yoke
-          state._undoStack    = []
+          state.shirtTail            = grids.shirtTail
+          state.sleeveOpening        = grids.sleeveOpening
+          state.yoke                 = grids.yoke
+          state.yokeDecreaseSchedule = grids.yokeDecreaseSchedule ?? []
+          state.yokeColorBackup      = grids.yokeColorBackup ?? {}
+          state._undoStack           = []
         })
       },
 
       setIsDrawing(val) {
         set((state) => { state.isDrawing = val })
+      },
+
+      setYokeEditMode(mode) {
+        set((state) => { state.yokeEditMode = mode })
+      },
+
+      addDecrease(col, fromRow) {
+        const { yokeDecreaseSchedule } = get()
+        // Adjacency constraint: adjacent columns cannot share the same fromRow
+        const conflict = yokeDecreaseSchedule.some(
+          (e) => Math.abs(e.col - col) === 1 && e.fromRow === fromRow,
+        )
+        if (conflict) {
+          console.warn(`addDecrease: column ${col} at row ${fromRow} conflicts with an adjacent decrease`)
+          return
+        }
+        set((state) => {
+          // Save displaced cell colors to backup and clear from grid
+          for (let row = fromRow; row <= state.yoke.rows; row++) {
+            const val = state.yoke.cells[row - 1]?.[col - 1] ?? 0
+            if (val !== 0) {
+              state.yokeColorBackup[`${row},${col}`] = val
+              state.yoke.cells[row - 1][col - 1] = 0
+            }
+          }
+          state.yokeDecreaseSchedule.push({ col, fromRow })
+        })
+      },
+
+      removeDecrease(col) {
+        set((state) => {
+          state.yokeDecreaseSchedule = state.yokeDecreaseSchedule.filter((e) => e.col !== col)
+          // Restore backed-up colors for this column
+          for (const key of Object.keys(state.yokeColorBackup)) {
+            const [rowStr, colStr] = key.split(',')
+            if (Number(colStr) === col) {
+              const row = Number(rowStr)
+              state.yoke.cells[row - 1][col - 1] = state.yokeColorBackup[key]
+              delete state.yokeColorBackup[key]
+            }
+          }
+        })
+      },
+
+      resetPatterns() {
+        set((state) => {
+          state.shirtTail            = makeGrid('shirtTail', 8, 13)
+          state.sleeveOpening        = makeGrid('sleeveOpening', 8, 13)
+          state.yoke                 = makeGrid('yoke', 12, 56)
+          state.yokeDecreaseSchedule = []
+          state.yokeColorBackup      = {}
+          state._undoStack           = []
+        })
+      },
+
+      clearAllDecreases() {
+        set((state) => {
+          // Restore all backed-up colors
+          for (const key of Object.keys(state.yokeColorBackup)) {
+            const [rowStr, colStr] = key.split(',')
+            const row = Number(rowStr)
+            const col = Number(colStr)
+            state.yoke.cells[row - 1][col - 1] = state.yokeColorBackup[key]
+          }
+          state.yokeColorBackup      = {}
+          state.yokeDecreaseSchedule = []
+        })
       },
 
       undo() {
@@ -134,12 +220,14 @@ export const usePatternStore = create<PatternState & PatternActions>()(
     {
       name: 'pattern-store',
       partialize: (state) => ({
-        shirtTail:         state.shirtTail,
-        sleeveOpening:     state.sleeveOpening,
-        yoke:              state.yoke,
-        activeArea:        state.activeArea,
-        activeDrawingTool: state.activeDrawingTool,
-        // _undoStack and isDrawing intentionally excluded from persistence
+        shirtTail:              state.shirtTail,
+        sleeveOpening:          state.sleeveOpening,
+        yoke:                   state.yoke,
+        activeArea:             state.activeArea,
+        activeDrawingTool:      state.activeDrawingTool,
+        yokeDecreaseSchedule:   state.yokeDecreaseSchedule,
+        yokeColorBackup:        state.yokeColorBackup,
+        // _undoStack, isDrawing, yokeEditMode intentionally excluded from persistence
       }),
     },
   ),

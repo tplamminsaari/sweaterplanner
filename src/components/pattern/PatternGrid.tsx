@@ -1,6 +1,7 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { usePatternStore } from '@/store/pattern-store'
 import { useYarnStore } from '@/store/yarn-store'
+import { useSweaterStore } from '@/store/sweater-store'
 import { useCanvasGrid, CELL_SIZE, ROW_NUM_WIDTH, ANNOTATED_ROW_NUM_WIDTH } from '@/hooks/useCanvasGrid'
 import { yokeInactiveColsForRow, YOKE_ROW_SKIP_SIZES } from '@/types'
 
@@ -46,7 +47,34 @@ export function PatternGrid() {
   const pushUndoSnapshot = usePatternStore((s) => s.pushUndoSnapshot)
   const setIsDrawing = usePatternStore((s) => s.setIsDrawing)
   const activeSlotIndex = useYarnStore((s) => s.activeSlotIndex)
+  const size = useSweaterStore((s) => s.size)
   const colorMap = useColorMap()
+
+  const [tooltip, setTooltip] = useState<{ row1: number; x: number; y: number } | null>(null)
+
+  function handleMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
+    const canvas = e.currentTarget
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const canvasX = (e.clientX - rect.left) * scaleX
+    const canvasY = (e.clientY - rect.top) * scaleY
+    if (canvasX >= 0 && canvasX < labelWidth) {
+      const row1 = grid.rows - Math.floor(canvasY / CELL_SIZE)
+      if (row1 >= 1 && row1 <= grid.rows) {
+        setTooltip({ row1, x: e.clientX, y: e.clientY })
+        return
+      }
+    }
+    setTooltip(null)
+  }
+
+  function getTooltipText(row1: number): string {
+    if (activeArea === 'yoke' && YOKE_ROW_SKIP_SIZES[row1]?.includes(size)) {
+      return `Row ${row1} — skipped for ${size}`
+    }
+    return `Row ${row1}`
+  }
 
   const yokeInactive = useYokeInactiveCells(grid.rows, grid.cols)
   const inactiveCells = activeArea === 'yoke' ? yokeInactive : undefined
@@ -102,7 +130,17 @@ export function PatternGrid() {
           imageRendering: 'pixelated',
           cursor: activeDrawingTool === 'eraser' ? 'cell' : 'crosshair',
         }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setTooltip(null)}
       />
+      {tooltip && (
+        <div
+          className="row-tooltip"
+          style={{ left: tooltip.x + 14, top: tooltip.y - 10 }}
+        >
+          {getTooltipText(tooltip.row1)}
+        </div>
+      )}
     </div>
   )
 }

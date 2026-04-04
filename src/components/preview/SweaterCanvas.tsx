@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, useCallback } from 'react'
 import { useYarnStore } from '@/store/yarn-store'
 import { usePatternStore } from '@/store/pattern-store'
+import { useSweaterStore } from '@/store/sweater-store'
 import { useSweaterRenderer } from '@/hooks/useSweaterRenderer'
 import type { PatternGrid } from '@/types'
 
@@ -15,6 +16,7 @@ export function SweaterCanvas() {
   const sleeveOpening = usePatternStore((s) => s.sleeveOpening)
   const yoke          = usePatternStore((s) => s.yoke)
   const isDrawing     = usePatternStore((s) => s.isDrawing)
+  const size          = useSweaterStore((s) => s.size)
 
   const colorMap = useMemo(() => {
     const map: Record<number, string> = {}
@@ -39,7 +41,7 @@ export function SweaterCanvas() {
     frozenPatternsRef.current = patterns
   }
 
-  const canvasRef = useSweaterRenderer({ colorMap, patterns: frozenPatternsRef.current })
+  const canvasRef = useSweaterRenderer({ colorMap, patterns: frozenPatternsRef.current, size })
 
   // ── Zoom / pan state ──────────────────────────────────────────
   const wrapperRef = useRef<HTMLDivElement>(null)

@@ -3,6 +3,7 @@ import {
   SHIRT_TAIL_STITCHES,
   YOKE_START_STITCHES,
   YOKE_COLUMN_SKIP_SCHEDULE,
+  YOKE_ROW_SKIP_SIZES,
   yokeInactiveColsForRow,
 } from '@/types'
 import { useYarnStore } from '@/store/yarn-store'
@@ -22,18 +23,24 @@ function line(label: string, value: string | number, pad = 40): string {
   return `${label.padEnd(pad)}${value}`
 }
 
-function renderGrid(grid: PatternGrid, getInactiveCols?: (row1: number) => ReadonlySet<number>): string {
+function renderGrid(
+  grid: PatternGrid,
+  getInactiveCols?: (row1: number) => ReadonlySet<number>,
+  skippedRows?: ReadonlySet<number>,
+): string {
   const lines: string[] = []
   // Print top row first (highest row index = top of knitting)
   for (let r = grid.rows - 1; r >= 0; r--) {
     const row1 = r + 1
+    const isSkipped = skippedRows?.has(row1) ?? false
     const inactive = getInactiveCols ? getInactiveCols(row1) : new Set<number>()
     const cells = Array.from({ length: grid.cols }, (_, c) => {
-      if (inactive.has(c + 1)) return '·'
+      if (isSkipped || inactive.has(c + 1)) return '·'
       const v = grid.cells[r]?.[c] ?? 0
       return v === 0 ? '░' : String(v)
     })
-    lines.push(`  Row ${String(row1).padStart(2)}: ${cells.join(' ')}`)
+    const suffix = isSkipped ? '  (skipped)' : ''
+    lines.push(`  Row ${String(row1).padStart(2)}: ${cells.join(' ')}${suffix}`)
   }
   return lines.join('\n')
 }
@@ -183,6 +190,34 @@ export function generateInstructions(): string {
   }
   parts.push('')
 
+  // ── Yoke row skipping ───────────────────────────────────────────────────────
+  const ALL_SIZES: SweaterSize[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL']
+  const skippedForSize = Object.entries(YOKE_ROW_SKIP_SIZES)
+    .filter(([, sizes]) => sizes?.includes(size))
+    .map(([row]) => Number(row))
+    .sort((a, b) => a - b)
+
+  parts.push(hr)
+  parts.push('YOKE ROW SKIPPING')
+  parts.push(hr)
+  parts.push('')
+
+  if (skippedForSize.length === 0) {
+    parts.push(`  All rows are knitted for size ${size}.`)
+  } else {
+    parts.push(`  Rows skipped for size ${size}: ${skippedForSize.join(', ')}`)
+  }
+  parts.push('')
+  parts.push('  Full skip table (rows knitted on fewer than all sizes):')
+  parts.push(`  ${'Row'.padEnd(6)}  ${ALL_SIZES.join('   ')}`)
+  parts.push(`  ${''.padEnd(6)}  ${ALL_SIZES.map(() => '---').join('   ')}`)
+  for (const [rowStr, skipSizes] of Object.entries(YOKE_ROW_SKIP_SIZES).sort(([a], [b]) => Number(a) - Number(b))) {
+    if (!skipSizes || skipSizes.length === 0) continue
+    const cols = ALL_SIZES.map((s) => (skipSizes.includes(s) ? 'skip' : 'knit'))
+    parts.push(`  ${String(rowStr).padEnd(6)}  ${cols.join('   ')}`)
+  }
+  parts.push('')
+
   // ── Pattern grids ───────────────────────────────────────────────────────────
   parts.push(hr)
   parts.push('PATTERN GRIDS')
@@ -200,8 +235,8 @@ export function generateInstructions(): string {
   parts.push(renderGrid(sleeveOpening))
   parts.push('')
 
-  parts.push(`YOKE  (${yoke.cols} cols × ${yoke.rows} rows, top → bottom)`)
-  parts.push(renderGrid(yoke, yokeInactiveColsForRow))
+  parts.push(`YOKE  (${yoke.cols} cols × ${yoke.rows} rows, top → bottom)  [size ${size}]`)
+  parts.push(renderGrid(yoke, yokeInactiveColsForRow, new Set(skippedForSize)))
   parts.push('')
 
   parts.push(HR)

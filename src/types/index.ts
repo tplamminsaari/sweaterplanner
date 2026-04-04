@@ -73,6 +73,16 @@ export const YOKE_START_STITCHES: Record<SweaterSize, number> = {
   S: 168, M: 180, L: 192, XL: 204, XXL: 216, '3XL': 228, '4XL': 240,
 }
 
+// ─── User-defined yoke decrease entry ────────────────────────────────────────
+
+/** A user-defined column decrease in the yoke repeat. */
+export interface DecreaseEntry {
+  /** 1-indexed column within the 12-stitch repeat. */
+  col: number
+  /** 1-indexed row; this column is inactive from fromRow upward. */
+  fromRow: number
+}
+
 // ─── Yoke column skip schedule ────────────────────────────────────────────────
 
 export interface YokeColumnSkipEntry {

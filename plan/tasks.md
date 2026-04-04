@@ -362,7 +362,7 @@ committable increment. Later tasks will be refined as implementation progresses.
     editor behavior described in T035's last bullet is replaced by this task's approach
   - Commit: yoke editor shows all rows with per-row size-skip annotations; size selector has no effect on editor
 
-- [ ] **T035** — Implement yoke row skipping per size
+- [x] **T035** — Implement yoke row skipping per size
   - The existing `YOKE_ROW_MIN_SIZE` type assumes a simple minimum-size threshold, but the
     actual skip pattern is non-monotonic (e.g. row 2 is skipped on 3XL but not XXL).
     Replace it with a more flexible structure: `YOKE_ROW_SKIP_SIZES: Partial<Record<number, SweaterSize[]>>`
@@ -383,14 +383,14 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Update all references to `YOKE_ROW_MIN_SIZE` throughout the codebase
   - Commit: yoke rendering and editor correctly reflect per-size row skipping
 
-- [ ] **T036** — Include yoke row skipping in downloaded instructions
+- [x] **T036** — Include yoke row skipping in downloaded instructions
   - In `generate-instructions.ts`, add a section listing which rows are skipped per size
   - For the current size, list the skipped row numbers explicitly
   - Also print a compact full table (all sizes × all affected rows) so the knitter
     can see the complete picture at a glance
   - Commit: instructions include accurate per-size yoke row skip info
 
-- [ ] **T038** — Plan: user-defined yoke decrease schedule editor
+- [x] **T038** — Plan: user-defined yoke decrease schedule editor
   - Design the data model for user-defined decrease entries:
     - `DecreaseEntry { col: number; fromRow: number }` — this column is inactive from `fromRow` upward in the 12-col repeat
     - Replace or augment `YOKE_COLUMN_SKIP_SCHEDULE` with a user-editable `decreaseSchedule: DecreaseEntry[]`
@@ -405,7 +405,7 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Update `plan/03-component-architecture.md`: describe the mode toggle, new store fields, updated `useCanvasGrid` inputs, and constraint validation logic
   - Commit: planning complete, architecture docs updated
 
-- [ ] **T039** — Implement decrease schedule data model and store
+- [x] **T039** — Implement decrease schedule data model and store
   - Add `DecreaseEntry` type to `src/types/index.ts`
   - Add to pattern-store:
     - `yokeDecreaseSchedule: DecreaseEntry[]` — persisted, initially empty (falls back to `YOKE_COLUMN_SKIP_SCHEDULE` display when empty)
@@ -418,6 +418,28 @@ committable increment. Later tasks will be refined as implementation progresses.
     - `clearAllDecreases()` — removes all entries, restores all backed-up colors
   - Export a pure helper `deriveInactiveCells(schedule: DecreaseEntry[]): Set<string>` from a utils file so both `PatternGrid` and `useSweaterRenderer` can use it
   - Commit: store and data model complete, unit-testable via console
+
+- [x] **T048** — "New" button to reset the designer
+  - Add a **New** button to `AppToolbar.tsx`, placed immediately before the size selector
+  - On click, show a confirmation dialog ("This will clear all yarns and patterns. Are you sure?")
+  - On confirm:
+    - Reset yarn slots to their initial state (all slots empty) via a new `resetSlots` action in `yarn-store`
+    - Reset all pattern grids to their initial state via a new `resetPatterns` action in `pattern-store`
+  - On cancel: do nothing
+  - Commit: New button resets yarn slots and patterns to initial state after confirmation
+
+- [x] **T050** — Sync architecture docs with implemented code
+  - **`plan/03-component-architecture.md`**:
+    - Update directory structure tree: fix component folder names (`pattern-designer/` → `pattern/`, `sweater-preview/` → `preview/`, `yarn-catalog/` → `yarn/`); fix file names (`PatternDesigner.tsx` → `PatternDesignerPanel.tsx`, `SweaterPreview.tsx` → `SweaterPreviewPanel.tsx`, `YarnCatalog.tsx` → `YarnCatalogPanel.tsx`); remove non-existent `sweater-model-service.ts`; add missing files: `utils/bresenham.ts`, `utils/yoke-decreases.ts`, `services/generate-instructions.ts`, `services/project-export.ts`, `services/project-import.ts`; fix data note (Ístex + Sandnes Garn, not Novita)
+    - `AppToolbar.tsx` description: add "New" button (resets yarns + patterns after confirmation)
+    - `PatternGrid.tsx` description: add row-number tooltip behaviour (T049)
+    - `useCanvasGrid` hook signature: remove non-existent `cellSize`/`decreasedCells`/`editMode` params; add actual params (`rowSkipAnnotations`, `activeTool`, `onStrokeStart`, `onStrokeEnd`, `onCellPaint`, `onLinePaint`, `paintSlot`); fix return type to `RefObject<HTMLCanvasElement>`
+    - `useSweaterRenderer` hook signature: replace stale `geometry`/`slots` params with actual `{ colorMap, patterns, size }`; fix return type to `RefObject<HTMLCanvasElement>`
+    - `SweaterCanvas.tsx` description: mention deferred pattern rendering (frozen while drawing) and zoom/pan
+    - State flow: add "User clicks New → yarn-store: resetSlots() + pattern-store: resetPatterns()"
+  - **`plan/02-data-models.md`**:
+    - Adjacency constraint section: align description with actual implementation (constraint is same `fromRow` on adjacent columns, not overlapping ranges)
+  - Commit: architecture docs reflect actual codebase state
 
 - [ ] **T040** — Implement yoke shape editor mode UI
   - Add a **"Decrease Schedule"** mode toggle button to the yoke tab's toolbar (visible only when the yoke area is active); dispatches `setYokeEditMode`
@@ -433,14 +455,21 @@ committable increment. Later tasks will be refined as implementation progresses.
   - Include `yokeDecreaseSchedule` in project export/import (`ProjectExport` type and serialization)
   - Commit: full decrease schedule editing mode working end-to-end
 
-- [ ] **T048** — "New" button to reset the designer
-  - Add a **New** button to `AppToolbar.tsx`, placed immediately before the size selector
-  - On click, show a confirmation dialog ("This will clear all yarns and patterns. Are you sure?")
-  - On confirm:
-    - Reset yarn slots to their initial state (all slots empty) via a new `resetSlots` action in `yarn-store`
-    - Reset all pattern grids to their initial state via a new `resetPatterns` action in `pattern-store`
-  - On cancel: do nothing
-  - Commit: New button resets yarn slots and patterns to initial state after confirmation
+- [x] **T049** — Row number tooltip in pattern grid
+  - When hovering the mouse over a row number label in the yoke pattern grid, show a tooltip
+  - Tooltip content:
+    - If the row is skipped for the currently selected sweater size: indicate it is skipped (e.g. "Row 2 — skipped for S")
+    - Otherwise: "Row 2" (just the row number)
+  - Row numbers are rendered on the canvas in `useCanvasGrid`; hovering detection requires tracking mouse position over the canvas and computing which row number area is under the cursor
+  - The tooltip itself can be a small HTML element (absolutely positioned) shown/hidden via React state in `PatternGrid.tsx` — no need for a library
+  - Only applies to the yoke grid (only yoke has skip annotations and a selected size)
+  - The hem/cuff grid row numbers show a plain "Row N" tooltip
+  - Commit: hovering a row number in the pattern grid shows a tooltip with skip info for the active size
+
+- [x] **T051** — Increase row tooltip padding
+  - The `.row-tooltip` CSS rule in `index.css` currently uses `padding: 3px 7px`, making the tooltip the same height as the text — too tight
+  - Increase vertical padding so there is visible breathing room above and below the text
+  - Commit: row tooltip has comfortable vertical padding
 
 - [ ] **T037** ⚠️ LOW PRIORITY — UI localization (English, Finnish, Swedish)
   - Install `i18next` and `react-i18next`

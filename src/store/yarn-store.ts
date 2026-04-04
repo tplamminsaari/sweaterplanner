@@ -20,6 +20,7 @@ interface YarnActions {
   setActiveSlotIndex(index: number): void
   assignColorToSlot(slotIndex: number, colorId: string): void
   clearSlot(slotIndex: number): void
+  resetSlots(): void
 }
 
 const initialSlots: [YarnSlot, YarnSlot, YarnSlot, YarnSlot, YarnSlot] = [
@@ -58,6 +59,13 @@ export const useYarnStore = create<YarnState & YarnActions>()(
       clearSlot(slotIndex) {
         set((state) => {
           state.slots[slotIndex].yarnColorId = null
+        })
+      },
+
+      resetSlots() {
+        set((state) => {
+          state.slots = initialSlots.map((s) => ({ ...s })) as typeof initialSlots
+          state.activeSlotIndex = 0
         })
       },
     })),

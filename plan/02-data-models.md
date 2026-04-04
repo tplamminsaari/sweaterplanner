@@ -73,12 +73,40 @@ PatternGrid
   cells: number[][]      // [row][col], value = slotIndex (1–5) or 0 = empty
                          // cells[0] = bottom row of knitting
 
+DecreaseEntry
+  col: number            // 1-indexed column within the 12-stitch repeat
+  fromRow: number        // 1-indexed; this column is inactive from fromRow upward
+
 PatternConfig
   shirtTail: PatternGrid
-  sleeveOpening: PatternGrid   // shared for both sleeves
+  sleeveOpening: PatternGrid         // shared for both sleeves
   yoke: PatternGrid
   activeArea: PatternArea
+  yokeDecreaseSchedule: DecreaseEntry[]   // user-defined column decreases; persisted; initially []
+  yokeColorBackup: Record<string, number> // "row,col" → slotIndex saved before a column was decreased
+                                          // persisted; used to restore paint when a decrease is removed
+  yokeEditMode: "pattern" | "decreases"   // not persisted; always starts in "pattern"
 ```
+
+### Adjacency constraint for user decreases
+
+Two `DecreaseEntry` values conflict if their columns are immediate neighbours (`|A.col − B.col| === 1`)
+**and** they share the same `fromRow`. A k2tog at row R on column C consumes C and its neighbour;
+if the neighbour is also decreased at row R the same stitch would need to participate in two
+k2tog operations simultaneously (effectively a k3tog), which is not allowed.
+
+The `addDecrease(col, fromRow)` store action checks this before inserting and is a no-op
+(with a console warning) if a conflict is found. The UI layer is expected to surface this
+as an inline message.
+
+### Color backup mechanism
+
+When `addDecrease(col, fromRow)` is called, any existing painted cells at
+`(row ≥ fromRow, col)` are moved out of `yoke.cells` (set to 0) and saved into
+`yokeColorBackup` under the key `"row,col"`.
+
+When `removeDecrease(col)` is called, the backed-up entries for that column are written
+back into `yoke.cells`, restoring the user's paint.
 
 ---
 
@@ -128,23 +156,19 @@ Stitch count through the yoke (4XL, 20 repeats of 12):
 ### Yoke row skipping per size
 
 The 56-row grid represents the full yoke at **4XL**. Smaller sizes skip certain rows,
-resulting in a shorter yoke. The row-skip mapping is **predefined in code**.
-
-> ⚠️ **Open item**: The exact per-size row-skip list must be provided by someone with knitting
-> domain knowledge before Phase 4 / Phase 5 can be implemented correctly. See Q20 in
-> `05-open-questions.md`.
-
-The structure that will hold this data:
+resulting in a shorter yoke. The row-skip mapping is **predefined in code** as
+`YOKE_ROW_SKIP_SIZES` (resolved, see T035).
 
 ```
-// For each grid row (1-indexed, 1 = bottom of yoke), the *minimum* size at which
-// that row exists. Rows with no entry are present in all sizes.
-// Must be defined before Phase 4 work begins.
-YOKE_ROW_MIN_SIZE: Record<number, SweaterSize>
-// e.g.: { 50: "3XL", 52: "3XL", 54: "4XL", 55: "4XL", 56: "4XL" }
+// For each affected grid row (1-indexed), the sizes on which that row is skipped.
+// Rows absent from the map are knitted in all sizes.
+YOKE_ROW_SKIP_SIZES: Partial<Record<number, SweaterSize[]>>
+// e.g.: { 2: ['S','M','L','XL','3XL'], 3: ['S','M','L'], ... }
 ```
 
-Until this is filled in, the Phase 5 sweater preview will render all 56 rows for every size.
+The sweater preview (`useSweaterRenderer`) skips these rows for the active size when
+tiling the yoke zone. The pattern editor always shows all rows, with per-row annotations
+indicating which sizes skip each row.
 
 ### Yoke in the pattern editor — visual representation
 
@@ -258,6 +282,9 @@ AppState
     yoke: PatternGrid
     activeArea: PatternArea
     activeDrawingTool: "freehand" | "line" | "eraser"
+    yokeDecreaseSchedule: DecreaseEntry[]
+    yokeColorBackup: Record<string, number>
+    yokeEditMode: "pattern" | "decreases"   // not persisted
   }
   sweater: {
     size: SweaterSize
@@ -281,6 +308,8 @@ ProjectExport
     shirtTail: PatternGrid
     sleeveOpening: PatternGrid
     yoke: PatternGrid
+    yokeDecreaseSchedule: DecreaseEntry[]
+    yokeColorBackup: Record<string, number>
   }
   sweater: {
     size: SweaterSize

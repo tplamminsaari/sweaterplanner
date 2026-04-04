@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import type { SweaterSize } from '@/types'
 import { useSweaterStore } from '@/store/sweater-store'
+import { useYarnStore } from '@/store/yarn-store'
+import { usePatternStore } from '@/store/pattern-store'
 import { exportProject } from '@/services/project-export'
 import { importProject } from '@/services/project-import'
 import { downloadInstructions } from '@/services/generate-instructions'
@@ -8,11 +10,20 @@ import { downloadInstructions } from '@/services/generate-instructions'
 const SIZES: SweaterSize[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL']
 
 export function AppToolbar() {
-  const size    = useSweaterStore((s) => s.size)
-  const setSize = useSweaterStore((s) => s.setSize)
+  const size          = useSweaterStore((s) => s.size)
+  const setSize       = useSweaterStore((s) => s.setSize)
+  const resetSlots    = useYarnStore((s) => s.resetSlots)
+  const resetPatterns = usePatternStore((s) => s.resetPatterns)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importError, setImportError] = useState<string | null>(null)
+
+  function handleNew() {
+    const confirmed = window.confirm('This will clear all yarns and patterns. Are you sure?')
+    if (!confirmed) return
+    resetSlots()
+    resetPatterns()
+  }
 
   function handleImportClick() {
     setImportError(null)
@@ -38,6 +49,10 @@ export function AppToolbar() {
 
   return (
     <header className="app-toolbar">
+      <div className="app-toolbar__group">
+        <button className="toolbar-btn" onClick={handleNew}>New</button>
+      </div>
+
       <div className="app-toolbar__group">
         <label className="app-toolbar__label" htmlFor="size-select">
           Size

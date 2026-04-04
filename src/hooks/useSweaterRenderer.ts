@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { RefObject } from 'react'
-import type { PatternGrid } from '../types'
-import { yokeInactiveColsForRow } from '../types'
+import type { PatternGrid, SweaterSize } from '../types'
+import { yokeInactiveColsForRow, YOKE_ROW_SKIP_SIZES } from '../types'
 
 // ── Zone definitions ───────────────────────────────────────────
 // Each zone is [x, y, w, h] as fractions of the 1000×1000 texture image.
@@ -64,6 +64,7 @@ function tilePatternZone(
   baseColor: string,
   zone: readonly [number, number, number, number],
   inactiveColsFn?: (row1indexed: number) => ReadonlySet<number>,
+  skippedRows?: ReadonlySet<number>,
 ) {
   if (grid.cols === 0 || grid.rows === 0) return
 
@@ -97,7 +98,7 @@ function tilePatternZone(
         const y1 = zy + Math.round(canvasRow       * zh / rows)
         const y2 = zy + Math.round((canvasRow + 1) * zh / rows)
 
-        const inactive = inactiveColsFn ? inactiveColsFn(r + 1).has(c + 1) : false
+        const inactive = (skippedRows?.has(r + 1) ?? false) || (inactiveColsFn ? inactiveColsFn(r + 1).has(c + 1) : false)
         const slot     = inactive ? 0 : (grid.cells[r]?.[c] ?? 0)
         ctx.fillStyle  = slot > 0 ? (colorMap[slot] ?? baseColor) : baseColor
         ctx.fillRect(x1, y1, x2 - x1, y2 - y1)
@@ -133,13 +134,14 @@ interface Patterns {
 interface UseSweaterRendererOptions {
   colorMap: Record<number, string>   // slotIndex (1-based) → hex
   patterns: Patterns
+  size: SweaterSize
 }
 
 export function useSweaterRenderer(
   options: UseSweaterRendererOptions,
 ): RefObject<HTMLCanvasElement | null> {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { colorMap, patterns } = options
+  const { colorMap, patterns, size } = options
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -152,6 +154,13 @@ export function useSweaterRenderer(
     if (!ctx) return
 
     const baseColor = colorMap[1] ?? FALLBACK_COLOR
+
+    // Rows (1-indexed) skipped for the active size
+    const yokeSkippedRows = new Set<number>(
+      Object.entries(YOKE_ROW_SKIP_SIZES)
+        .filter(([, sizes]) => sizes?.includes(size))
+        .map(([row]) => Number(row))
+    )
 
     function render(texture: HTMLImageElement) {
       // 1. Dark background
@@ -178,7 +187,7 @@ export function useSweaterRenderer(
 
       // Patterned zones — each cell tiled from the grid
       tilePatternZone(ctx!, patterns.yoke, colorMap, baseColor,
-        Z.yoke, yokeInactiveColsForRow)
+        Z.yoke, yokeInactiveColsForRow, yokeSkippedRows)
 
       tilePatternZone(ctx!, patterns.shirtTail, colorMap, baseColor,
         Z.tailPattern)
@@ -197,7 +206,7 @@ export function useSweaterRenderer(
       ctx!.fillStyle = baseColor
       ctx!.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
     })
-  }, [colorMap, patterns])
+  }, [colorMap, patterns, size])
 
   return canvasRef
 }

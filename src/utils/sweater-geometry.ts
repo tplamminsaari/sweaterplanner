@@ -46,7 +46,7 @@ export function computeGeometry(
   // Body height (below yoke)
   const bodyHeightPx = BODY_HEIGHT_CM[size] * SCALE
 
-  // Yoke: active rows = all 56 (YOKE_ROW_MIN_SIZE is placeholder — use all rows for now)
+  // Yoke: all rows (row skipping for size is handled in useSweaterRenderer)
   const yokeRows = patterns.yoke.rows  // 56
   const yokeHeightPx = (yokeRows / rowsPerCm) * SCALE
 
