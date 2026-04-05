@@ -441,7 +441,7 @@ committable increment. Later tasks will be refined as implementation progresses.
     - Adjacency constraint section: align description with actual implementation (constraint is same `fromRow` on adjacent columns, not overlapping ranges)
   - Commit: architecture docs reflect actual codebase state
 
-- [ ] **T040** — Implement yoke shape editor mode UI
+- [x] **T040** — Implement yoke shape editor mode UI
   - Add a **"Decrease Schedule"** mode toggle button to the yoke tab's toolbar (visible only when the yoke area is active); dispatches `setYokeEditMode`
   - In **Decrease mode**, `PatternGrid.tsx` changes click behavior:
     - Single click on a cell (row, col): if that column has no decrease yet → call `addDecrease(col, row)`; if it already has a decrease starting at a different row → call `removeDecrease(col)` then `addDecrease(col, row)`; if the exact same entry exists → call `removeDecrease(col)` (toggle off)
@@ -470,6 +470,69 @@ committable increment. Later tasks will be refined as implementation progresses.
   - The `.row-tooltip` CSS rule in `index.css` currently uses `padding: 3px 7px`, making the tooltip the same height as the text — too tight
   - Increase vertical padding so there is visible breathing room above and below the text
   - Commit: row tooltip has comfortable vertical padding
+
+- [x] **T052** — Fix: clicking any row in a decreased column moves the decrease start point
+  - **Root cause**: in Decrease mode, `PatternGrid.tsx` still merges `userDecreasedCells` into
+    `inactiveCells`. Because `getCell` checks `inactiveCells` before the `allowDecreased` bypass,
+    clicking a cell that is above the current `fromRow` (i.e. inside the decreased range) silently
+    returns null and the toggle never fires.
+  - **Fix**: only merge `userDecreasedCells` into `inactiveCells` when `yokeEditMode === 'pattern'`.
+    In Decrease mode pass `yokeInactive` (predefined only) as `inactiveCells`; the user-decreased
+    cells are already handled via the separate `decreasedCells` prop and the `allowDecreased` flag.
+  - After the fix, clicking any cell in a column that already has a decrease entry — whether below,
+    at, or above the current `fromRow` — should correctly move the decrease start to the clicked row
+    (or toggle it off if the same row is clicked again).
+  - Commit: decrease mode allows clicking anywhere in a decreased column to move the start row
+
+- [ ] **T053** — Make predefined decrease schedule editable in Decrease mode
+  - Currently `YOKE_COLUMN_SKIP_SCHEDULE` is hardcoded and treated as permanently inactive;
+    in Decrease mode these cells are still blocked (`yokeInactive` is passed as `inactiveCells`),
+    so the user cannot interact with the predefined entries at all.
+  - **Goal**: in Decrease mode, predefined inactive cells should be clickable so the user can
+    move or remove them, just like user-defined decreases.
+  - **Approach**:
+    - On first entry into Decrease mode (or when `yokeDecreaseSchedule` is empty), seed
+      `yokeDecreaseSchedule` with entries derived from `YOKE_COLUMN_SKIP_SCHEDULE` so the
+      predefined schedule becomes the starting point for editing
+    - Once seeded, all decreases — predefined-origin and user-added — are stored uniformly
+      in `yokeDecreaseSchedule` and edited with the same click logic already in place
+    - Add a **"Reset to default"** button in the yoke toolbar (visible only in Decrease mode)
+      that calls `clearAllDecreases()` and re-seeds from `YOKE_COLUMN_SKIP_SCHEDULE`
+    - In Pattern mode, if `yokeDecreaseSchedule` is non-empty it takes full precedence over
+      `YOKE_COLUMN_SKIP_SCHEDULE`; `yokeInactive` derived from `YOKE_COLUMN_SKIP_SCHEDULE`
+      is only used when the schedule is empty (i.e. as fallback before first edit)
+  - **Architecture docs** — update both:
+    - `plan/02-data-models.md`: remove "predefined (not user-configurable)" language; describe
+      `YOKE_COLUMN_SKIP_SCHEDULE` as the default seed value for `yokeDecreaseSchedule`
+    - `plan/03-component-architecture.md`: update Decrease mode description to reflect that
+      predefined and user-defined decreases are unified in `yokeDecreaseSchedule`
+  - Include the seeded schedule in project export/import (already covered since
+    `yokeDecreaseSchedule` is already exported — no `ProjectExport` type change needed)
+  - Commit: predefined decreases are editable; Reset to default restores original schedule
+
+- [ ] **T054** — Show per-row circular stitch count in yoke Decrease mode
+  - When the yoke pattern editor is in **Decrease mode**, print the total number of stitches
+    that each row contains when the yoke is knitted in the round, next to the row number
+    in the left-margin label area of the canvas
+  - **Calculation**:
+    - `activeCols(row)` = number of columns in the 12-col repeat that are **not** inactive
+      at that row (derive from `yokeDecreaseSchedule`, falling back to `YOKE_COLUMN_SKIP_SCHEDULE`
+      when the schedule is empty — same logic used elsewhere)
+    - `yokeRepeats` = `YOKE_START_STITCHES[size] / yoke.cols` — already computed in
+      `sweater-geometry.ts` as a local; extract it or re-derive it here
+    - `stitchCount(row)` = `activeCols(row) × yokeRepeats`
+  - **Display**:
+    - Render the count as a small number to the right of the row number label, e.g. `"3  96"`
+      (row 3, 96 stitches) or with a separator like `"3 · 96"`
+    - Only shown in Decrease mode — Pattern mode label area stays unchanged
+    - The left-margin width may need to grow slightly to fit the extra number; keep it readable
+      without eating too much canvas space
+    - Use the same muted, low-contrast style as the existing row-number labels
+  - The count updates live as the user adds/removes decreases and when the size selector changes
+  - Pass the per-row stitch counts into `useCanvasGrid` as a new optional prop
+    (e.g. `rowStitchCounts?: Map<number, number>`) so the hook remains unaware of the
+    decrease schedule and size — `PatternGrid.tsx` computes the map and passes it in
+  - Commit: yoke Decrease mode shows live per-row stitch counts in the row label area
 
 - [ ] **T037** ⚠️ LOW PRIORITY — UI localization (English, Finnish, Swedish)
   - Install `i18next` and `react-i18next`

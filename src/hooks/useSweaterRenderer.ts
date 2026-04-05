@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import type { RefObject } from 'react'
-import type { PatternGrid, SweaterSize } from '../types'
-import { yokeInactiveColsForRow, YOKE_ROW_SKIP_SIZES } from '../types'
+import type { PatternGrid, SweaterSize, DecreaseEntry } from '../types'
+import { yokeInactiveColsForRow, YOKE_ROW_SKIP_SIZES, YOKE_START_STITCHES } from '../types'
+import { deriveInactiveCells } from '../utils/yoke-decreases'
 
 // ── Zone definitions ───────────────────────────────────────────
 // Each zone is [x, y, w, h] as fractions of the 1000×1000 texture image.
@@ -65,6 +66,7 @@ function tilePatternZone(
   zone: readonly [number, number, number, number],
   inactiveColsFn?: (row1indexed: number) => ReadonlySet<number>,
   skippedRows?: ReadonlySet<number>,
+  additionalInactive?: ReadonlySet<string>,
 ) {
   if (grid.cols === 0 || grid.rows === 0) return
 
@@ -98,9 +100,126 @@ function tilePatternZone(
         const y1 = zy + Math.round(canvasRow       * zh / rows)
         const y2 = zy + Math.round((canvasRow + 1) * zh / rows)
 
-        const inactive = (skippedRows?.has(r + 1) ?? false) || (inactiveColsFn ? inactiveColsFn(r + 1).has(c + 1) : false)
+        const inactive = (skippedRows?.has(r + 1) ?? false)
+          || (inactiveColsFn ? inactiveColsFn(r + 1).has(c + 1) : false)
+          || (additionalInactive?.has(`${r + 1},${c + 1}`) ?? false)
         const slot     = inactive ? 0 : (grid.cells[r]?.[c] ?? 0)
         ctx.fillStyle  = slot > 0 ? (colorMap[slot] ?? baseColor) : baseColor
+        ctx.fillRect(x1, y1, x2 - x1, y2 - y1)
+      }
+    }
+  }
+
+  ctx.restore()
+}
+
+// ── Yoke trapezoid shape ───────────────────────────────────────
+/**
+ * Three horizontal lines defining the yoke silhouette in the 1000×1000 texture.
+ * Coordinates are fractions (pixel / 1000). Ordered top → bottom.
+ *
+ *   neckline:     (380,30)–(620,30)
+ *   shoulderline: (195,120)–(800,120)
+ *   yoke base:    (120,360)–(870,360)
+ */
+const YOKE_LINES = [
+  { y: 0.030, xLeft: 0.380, xRight: 0.620 },
+  { y: 0.120, xLeft: 0.195, xRight: 0.800 },
+  { y: 0.360, xLeft: 0.120, xRight: 0.870 },
+] as const
+
+/** Piecewise-linear interpolation: returns [xLeft, xRight] at texture y-fraction. */
+function yokeWidthAt(y: number): [number, number] {
+  if (y <= YOKE_LINES[0].y) return [YOKE_LINES[0].xLeft, YOKE_LINES[0].xRight]
+  const last = YOKE_LINES[YOKE_LINES.length - 1]
+  if (y >= last.y) return [last.xLeft, last.xRight]
+  for (let i = 0; i < YOKE_LINES.length - 1; i++) {
+    const lo = YOKE_LINES[i]
+    const hi = YOKE_LINES[i + 1]
+    if (y >= lo.y && y <= hi.y) {
+      const t = (y - lo.y) / (hi.y - lo.y)
+      return [lo.xLeft + t * (hi.xLeft - lo.xLeft), lo.xRight + t * (hi.xRight - lo.xRight)]
+    }
+  }
+  return [last.xLeft, last.xRight]
+}
+
+/**
+ * Tile the yoke pattern over a trapezoidal zone.
+ *
+ * For each row the visible x-span is derived from `yokeWidthAt`, so the pattern
+ * correctly narrows toward the neck. Inactive columns (decreased away) take zero
+ * pixel width — only active columns are distributed across the row's span.
+ * Skipped rows are filled solid with baseColor (they exist in the fabric but not
+ * in the pattern for this size).
+ */
+function tileYokeZone(
+  ctx: CanvasRenderingContext2D,
+  grid: PatternGrid,
+  colorMap: Record<number, string>,
+  baseColor: string,
+  zone: readonly [number, number, number, number],
+  repeats: number,
+  inactiveColsFn?: (row1: number) => ReadonlySet<number>,
+  skippedRows?: ReadonlySet<number>,
+  additionalInactive?: ReadonlySet<string>,
+) {
+  if (grid.cols === 0 || grid.rows === 0) return
+  const zy   = zone[1] * CANVAS_SIZE
+  const zh   = zone[3] * CANVAS_SIZE
+  const rows = grid.rows
+  const cols = grid.cols
+
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(0, zy, CANVAS_SIZE, zh)
+  ctx.clip()
+
+  for (let r = 0; r < rows; r++) {
+    const row1      = r + 1
+    const canvasRow = rows - 1 - r          // 0 = top of zone (towards neck)
+    const y1 = zy + Math.round(canvasRow       * zh / rows)
+    const y2 = zy + Math.round((canvasRow + 1) * zh / rows)
+    if (y2 <= y1) continue
+
+    // Texture y at the vertical centre of this row
+    const yTex = zone[1] + (canvasRow + 0.5) * zone[3] / rows
+    const [xL, xR] = yokeWidthAt(yTex)
+    const rowLeft  = xL * CANVAS_SIZE
+    const rowRight = xR * CANVAS_SIZE
+    const rowWidth = rowRight - rowLeft
+
+    // Skipped rows: fill solid with base colour and continue
+    if (skippedRows?.has(row1)) {
+      ctx.fillStyle = baseColor
+      ctx.fillRect(Math.round(rowLeft), y1, Math.round(rowWidth), y2 - y1)
+      continue
+    }
+
+    // Collect active column indices for this row
+    const inactiveCols = inactiveColsFn ? inactiveColsFn(row1) : new Set<number>()
+    const activeColsInRepeat: number[] = []
+    for (let c = 0; c < cols; c++) {
+      if (!inactiveCols.has(c + 1) && !(additionalInactive?.has(`${row1},${c + 1}`))) {
+        activeColsInRepeat.push(c)
+      }
+    }
+
+    const totalActive = activeColsInRepeat.length * repeats
+    if (totalActive === 0) {
+      ctx.fillStyle = baseColor
+      ctx.fillRect(Math.round(rowLeft), y1, Math.round(rowWidth), y2 - y1)
+      continue
+    }
+
+    let idx = 0
+    for (let rep = 0; rep < repeats; rep++) {
+      for (const c of activeColsInRepeat) {
+        const x1 = Math.round(rowLeft + idx       * rowWidth / totalActive)
+        const x2 = Math.round(rowLeft + (idx + 1) * rowWidth / totalActive)
+        idx++
+        const slot = grid.cells[r]?.[c] ?? 0
+        ctx.fillStyle = slot > 0 ? (colorMap[slot] ?? baseColor) : baseColor
         ctx.fillRect(x1, y1, x2 - x1, y2 - y1)
       }
     }
@@ -135,13 +254,14 @@ interface UseSweaterRendererOptions {
   colorMap: Record<number, string>   // slotIndex (1-based) → hex
   patterns: Patterns
   size: SweaterSize
+  yokeDecreaseSchedule?: DecreaseEntry[]
 }
 
 export function useSweaterRenderer(
   options: UseSweaterRendererOptions,
 ): RefObject<HTMLCanvasElement | null> {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { colorMap, patterns, size } = options
+  const { colorMap, patterns, size, yokeDecreaseSchedule } = options
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -161,6 +281,11 @@ export function useSweaterRenderer(
         .filter(([, sizes]) => sizes?.includes(size))
         .map(([row]) => Number(row))
     )
+
+    // Cells made inactive by the user-defined decrease schedule
+    const yokeUserDecreased = yokeDecreaseSchedule && yokeDecreaseSchedule.length > 0
+      ? deriveInactiveCells(yokeDecreaseSchedule, patterns.yoke.rows)
+      : undefined
 
     function render(texture: HTMLImageElement) {
       // 1. Dark background
@@ -185,9 +310,11 @@ export function useSweaterRenderer(
       fillZone(ctx!, Z.rightSleeve,  baseColor)
       fillZone(ctx!, Z.rightSleeveRibbing, baseColor)
 
-      // Patterned zones — each cell tiled from the grid
-      tilePatternZone(ctx!, patterns.yoke, colorMap, baseColor,
-        Z.yoke, yokeInactiveColsForRow, yokeSkippedRows)
+      // Yoke — trapezoidal tiling: x-span narrows per row via control lines,
+      // inactive (decreased) columns take zero pixel width.
+      const yokeRepeats = Math.max(1, Math.round(YOKE_START_STITCHES[size] / patterns.yoke.cols))
+      tileYokeZone(ctx!, patterns.yoke, colorMap, baseColor,
+        Z.yoke, yokeRepeats, yokeInactiveColsForRow, yokeSkippedRows, yokeUserDecreased)
 
       tilePatternZone(ctx!, patterns.shirtTail, colorMap, baseColor,
         Z.tailPattern)
@@ -206,7 +333,7 @@ export function useSweaterRenderer(
       ctx!.fillStyle = baseColor
       ctx!.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
     })
-  }, [colorMap, patterns, size])
+  }, [colorMap, patterns, size, yokeDecreaseSchedule])
 
   return canvasRef
 }

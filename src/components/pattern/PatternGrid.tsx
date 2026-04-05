@@ -4,6 +4,7 @@ import { useYarnStore } from '@/store/yarn-store'
 import { useSweaterStore } from '@/store/sweater-store'
 import { useCanvasGrid, CELL_SIZE, ROW_NUM_WIDTH, ANNOTATED_ROW_NUM_WIDTH } from '@/hooks/useCanvasGrid'
 import { yokeInactiveColsForRow, YOKE_ROW_SKIP_SIZES } from '@/types'
+import { deriveInactiveCells } from '@/utils/yoke-decreases'
 
 function useYokeInactiveCells(rows: number, cols: number): ReadonlySet<string> {
   return useMemo(() => {
@@ -40,17 +41,28 @@ function useColorMap(): Record<number, string> {
 }
 
 export function PatternGrid() {
-  const activeArea = usePatternStore((s) => s.activeArea)
-  const grid = usePatternStore((s) => s[activeArea])
-  const activeDrawingTool = usePatternStore((s) => s.activeDrawingTool)
-  const setCellColor = usePatternStore((s) => s.setCellColor)
-  const pushUndoSnapshot = usePatternStore((s) => s.pushUndoSnapshot)
-  const setIsDrawing = usePatternStore((s) => s.setIsDrawing)
-  const activeSlotIndex = useYarnStore((s) => s.activeSlotIndex)
-  const size = useSweaterStore((s) => s.size)
-  const colorMap = useColorMap()
+  const activeArea            = usePatternStore((s) => s.activeArea)
+  const grid                  = usePatternStore((s) => s[activeArea])
+  const activeDrawingTool     = usePatternStore((s) => s.activeDrawingTool)
+  const setCellColor          = usePatternStore((s) => s.setCellColor)
+  const pushUndoSnapshot      = usePatternStore((s) => s.pushUndoSnapshot)
+  const setIsDrawing          = usePatternStore((s) => s.setIsDrawing)
+  const yokeEditMode          = usePatternStore((s) => s.yokeEditMode)
+  const yokeDecreaseSchedule  = usePatternStore((s) => s.yokeDecreaseSchedule)
+  const addDecrease           = usePatternStore((s) => s.addDecrease)
+  const removeDecrease        = usePatternStore((s) => s.removeDecrease)
+  const activeSlotIndex       = useYarnStore((s) => s.activeSlotIndex)
+  const size                  = useSweaterStore((s) => s.size)
+  const colorMap              = useColorMap()
 
   const [tooltip, setTooltip] = useState<{ row1: number; x: number; y: number } | null>(null)
+  const [conflictMsg, setConflictMsg] = useState<string | null>(null)
+
+  // Cells made inactive by the user-defined decrease schedule
+  const userDecreasedCells = useMemo(
+    () => (activeArea === 'yoke' ? deriveInactiveCells(yokeDecreaseSchedule, grid.rows) : null),
+    [activeArea, yokeDecreaseSchedule, grid.rows],
+  )
 
   function handleMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
     const canvas = e.currentTarget
@@ -77,8 +89,57 @@ export function PatternGrid() {
   }
 
   const yokeInactive = useYokeInactiveCells(grid.rows, grid.cols)
-  const inactiveCells = activeArea === 'yoke' ? yokeInactive : undefined
+
+  // In pattern mode, merge user decreases into inactiveCells so they block painting.
+  // In decrease mode, pass only predefined inactive cells — user-decreased cells are
+  // handled via the separate `decreasedCells` prop so clicks inside them still fire.
+  const inactiveCells = useMemo(() => {
+    if (activeArea !== 'yoke') return undefined
+    if (yokeEditMode === 'decreases') return yokeInactive
+    if (!userDecreasedCells || userDecreasedCells.size === 0) return yokeInactive
+    const merged = new Set(yokeInactive)
+    for (const key of userDecreasedCells) merged.add(key)
+    return merged as ReadonlySet<string>
+  }, [activeArea, yokeInactive, userDecreasedCells, yokeEditMode])
+
   const rowSkipAnnotations = activeArea === 'yoke' ? YOKE_ROW_ANNOTATIONS : undefined
+
+  // In decrease mode pass decreasedCells separately so they render with distinct style
+  const decreasedCells = activeArea === 'yoke' && yokeEditMode === 'decreases'
+    ? (userDecreasedCells ?? undefined)
+    : undefined
+
+  const onDecreaseToggle = useCallback((row: number, col: number) => {
+    const row1 = row + 1
+    const col1 = col + 1
+    const existing = yokeDecreaseSchedule.find((e) => e.col === col1)
+    if (existing) {
+      if (existing.fromRow === row1) {
+        removeDecrease(col1)
+      } else {
+        // Check constraint for new position (excluding current entry for this col)
+        const conflict = yokeDecreaseSchedule.some(
+          (e) => e.col !== col1 && Math.abs(e.col - col1) === 1 && e.fromRow === row1,
+        )
+        if (conflict) {
+          setConflictMsg(`Column ${col1} conflicts with an adjacent decrease at row ${row1}`)
+          return
+        }
+        removeDecrease(col1)
+        addDecrease(col1, row1)
+      }
+    } else {
+      const conflict = yokeDecreaseSchedule.some(
+        (e) => Math.abs(e.col - col1) === 1 && e.fromRow === row1,
+      )
+      if (conflict) {
+        setConflictMsg(`Column ${col1} conflicts with an adjacent decrease at row ${row1}`)
+        return
+      }
+      addDecrease(col1, row1)
+    }
+    setConflictMsg(null)
+  }, [yokeDecreaseSchedule, addDecrease, removeDecrease])
 
   const onCellPaint = useCallback((row: number, col: number) => {
     if (activeDrawingTool === 'freehand') {
@@ -103,25 +164,36 @@ export function PatternGrid() {
     setIsDrawing(false)
   }, [setIsDrawing])
 
+  const editMode = activeArea === 'yoke' ? yokeEditMode : 'pattern'
+
   const canvasRef = useCanvasGrid({
     cols: grid.cols,
     rows: grid.rows,
     cells: grid.cells,
     colorMap,
     inactiveCells,
+    decreasedCells,
     rowSkipAnnotations,
     activeTool: activeDrawingTool,
+    editMode,
     onStrokeStart,
     onStrokeEnd,
     onCellPaint,
     onLinePaint,
     paintSlot: activeSlotIndex + 1,
+    onDecreaseToggle,
   })
 
   const labelWidth = rowSkipAnnotations ? ANNOTATED_ROW_NUM_WIDTH : ROW_NUM_WIDTH
 
   return (
     <div className="pattern-grid-wrapper">
+      {conflictMsg && (
+        <div className="decrease-conflict-msg" role="alert">
+          {conflictMsg}
+          <button className="decrease-conflict-msg__dismiss" onClick={() => setConflictMsg(null)}>×</button>
+        </div>
+      )}
       <canvas
         ref={canvasRef}
         style={{

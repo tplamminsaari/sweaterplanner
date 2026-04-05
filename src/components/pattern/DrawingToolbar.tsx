@@ -17,6 +17,8 @@ export function DrawingToolbar() {
   const undoStack         = usePatternStore((s) => s._undoStack)
   const grid              = usePatternStore((s) => s[activeArea])
   const activeSlotIndex   = useYarnStore((s) => s.activeSlotIndex)
+  const yokeEditMode      = usePatternStore((s) => s.yokeEditMode)
+  const setYokeEditMode   = usePatternStore((s) => s.setYokeEditMode)
 
   function handleFill() {
     const hasContent = grid.cells.some((row) => row.some((v) => v !== 0))
@@ -25,6 +27,8 @@ export function DrawingToolbar() {
     }
     fillPattern(activeArea, activeSlotIndex + 1)
   }
+
+  const isDecreaseMode = activeArea === 'yoke' && yokeEditMode === 'decreases'
 
   return (
     <div className="drawing-toolbar">
@@ -37,7 +41,7 @@ export function DrawingToolbar() {
         Undo
       </button>
       <div className="drawing-toolbar__tools">
-        {TOOLS.map(({ tool, label }) => (
+        {!isDecreaseMode && TOOLS.map(({ tool, label }) => (
           <button
             key={tool}
             className={`drawing-tool-btn${tool === activeDrawingTool ? ' drawing-tool-btn--active' : ''}`}
@@ -46,9 +50,20 @@ export function DrawingToolbar() {
             {label}
           </button>
         ))}
-        <button className="drawing-tool-btn drawing-tool-btn--fill" onClick={handleFill}>
-          Fill
-        </button>
+        {!isDecreaseMode && (
+          <button className="drawing-tool-btn drawing-tool-btn--fill" onClick={handleFill}>
+            Fill
+          </button>
+        )}
+        {activeArea === 'yoke' && (
+          <button
+            className={`drawing-tool-btn drawing-tool-btn--decreases${isDecreaseMode ? ' drawing-tool-btn--active' : ''}`}
+            onClick={() => setYokeEditMode(isDecreaseMode ? 'pattern' : 'decreases')}
+            title="Edit yoke decrease schedule"
+          >
+            Decreases
+          </button>
+        )}
       </div>
     </div>
   )

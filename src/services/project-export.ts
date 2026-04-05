@@ -15,9 +15,11 @@ export function exportProject(): void {
       slots: yarn.slots,
     },
     patterns: {
-      shirtTail:     pattern.shirtTail,
-      sleeveOpening: pattern.sleeveOpening,
-      yoke:          pattern.yoke,
+      shirtTail:            pattern.shirtTail,
+      sleeveOpening:        pattern.sleeveOpening,
+      yoke:                 pattern.yoke,
+      yokeDecreaseSchedule: pattern.yokeDecreaseSchedule,
+      yokeColorBackup:      pattern.yokeColorBackup,
     },
     sweater: {
       size: sweater.size,

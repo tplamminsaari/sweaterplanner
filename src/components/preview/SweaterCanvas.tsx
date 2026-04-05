@@ -10,13 +10,14 @@ const ZOOM_MIN  = 1
 const ZOOM_MAX  = 5
 
 export function SweaterCanvas() {
-  const slots         = useYarnStore((s) => s.slots)
-  const catalog       = useYarnStore((s) => s.catalog)
-  const shirtTail     = usePatternStore((s) => s.shirtTail)
-  const sleeveOpening = usePatternStore((s) => s.sleeveOpening)
-  const yoke          = usePatternStore((s) => s.yoke)
-  const isDrawing     = usePatternStore((s) => s.isDrawing)
-  const size          = useSweaterStore((s) => s.size)
+  const slots                 = useYarnStore((s) => s.slots)
+  const catalog               = useYarnStore((s) => s.catalog)
+  const shirtTail             = usePatternStore((s) => s.shirtTail)
+  const sleeveOpening         = usePatternStore((s) => s.sleeveOpening)
+  const yoke                  = usePatternStore((s) => s.yoke)
+  const isDrawing             = usePatternStore((s) => s.isDrawing)
+  const yokeDecreaseSchedule  = usePatternStore((s) => s.yokeDecreaseSchedule)
+  const size                  = useSweaterStore((s) => s.size)
 
   const colorMap = useMemo(() => {
     const map: Record<number, string> = {}
@@ -41,7 +42,7 @@ export function SweaterCanvas() {
     frozenPatternsRef.current = patterns
   }
 
-  const canvasRef = useSweaterRenderer({ colorMap, patterns: frozenPatternsRef.current, size })
+  const canvasRef = useSweaterRenderer({ colorMap, patterns: frozenPatternsRef.current, size, yokeDecreaseSchedule })
 
   // ── Zoom / pan state ──────────────────────────────────────────
   const wrapperRef = useRef<HTMLDivElement>(null)

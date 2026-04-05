@@ -189,6 +189,8 @@ export interface ProjectExport {
     shirtTail: PatternGrid
     sleeveOpening: PatternGrid
     yoke: PatternGrid
+    yokeDecreaseSchedule: DecreaseEntry[]
+    yokeColorBackup: Record<string, number>
   }
   sweater: {
     size: SweaterSize

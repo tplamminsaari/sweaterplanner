@@ -9,6 +9,7 @@ const ANNOTATED_ROW_NUM_WIDTH = 48 // label width when row skip annotations are 
 const GRID_LINE_COLOR = 'rgba(255,255,255,0.08)'
 const INACTIVE_FILL = 'rgba(0,0,0,0.5)'
 const INACTIVE_HATCH_COLOR = 'rgba(255,255,255,0.15)'
+const DECREASE_STRIPE_COLOR = 'rgba(124,110,245,0.55)'
 const EMPTY_FILL = '#2c2c32'
 const PREVIEW_ALPHA = 0.55
 const ROW_NUM_COLOR = 'rgba(255,255,255,0.35)'
@@ -29,13 +30,15 @@ interface UseCanvasGridOptions {
   rows: number
   cells: number[][]
   colorMap: Record<number, string>     // slotIndex → hex color (0 = empty)
-  inactiveCells?: ReadonlySet<string>  // "row,col" keys (1-indexed row, 1-indexed col)
+  inactiveCells?: ReadonlySet<string>  // "row,col" keys (1-indexed); predefined non-paintable
+  decreasedCells?: ReadonlySet<string> // "row,col" keys (1-indexed); user-defined decreases
   /**
    * Per-row annotation text shown in the left label area (1-indexed row → text).
    * When provided, the label area widens to ANNOTATED_ROW_NUM_WIDTH.
    */
   rowSkipAnnotations?: ReadonlyMap<number, string>
   activeTool?: DrawingTool
+  editMode?: 'pattern' | 'decreases'
   /** Called once at the start of each paint stroke (before any cells are changed). */
   onStrokeStart?: () => void
   /** Called once when a paint stroke ends (pointer up or leave). */
@@ -46,11 +49,13 @@ interface UseCanvasGridOptions {
   onLinePaint?: (cells: { row: number; col: number }[]) => void
   /** Slot index used for painting (1-indexed). 0 = eraser. */
   paintSlot?: number
+  /** Called in decrease mode when the user clicks a cell. row/col are 0-indexed. */
+  onDecreaseToggle?: (row: number, col: number) => void
 }
 
 export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanvasElement | null> {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { cols, rows, cells, colorMap, inactiveCells, rowSkipAnnotations } = options
+  const { cols, rows, cells, colorMap, inactiveCells, decreasedCells, rowSkipAnnotations } = options
   const labelWidth = rowSkipAnnotations && rowSkipAnnotations.size > 0
     ? ANNOTATED_ROW_NUM_WIDTH
     : ROW_NUM_WIDTH
@@ -92,6 +97,8 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
           const slotIndex = cells[r]?.[c] ?? 0
           const isPreview = previewSet?.has(`${r},${c}`) ?? false
 
+          const isDecreased = decreasedCells?.has(`${gridRow1},${gridCol1}`) ?? false
+
           if (inactive) {
             ctx!.fillStyle = INACTIVE_FILL
             ctx!.fillRect(x, y, CELL_SIZE, CELL_SIZE)
@@ -100,6 +107,19 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
             ctx!.beginPath()
             ctx!.moveTo(x, y); ctx!.lineTo(x + CELL_SIZE, y + CELL_SIZE)
             ctx!.moveTo(x + CELL_SIZE, y); ctx!.lineTo(x, y + CELL_SIZE)
+            ctx!.stroke()
+          } else if (isDecreased) {
+            ctx!.fillStyle = INACTIVE_FILL
+            ctx!.fillRect(x, y, CELL_SIZE, CELL_SIZE)
+            ctx!.strokeStyle = DECREASE_STRIPE_COLOR
+            ctx!.lineWidth = 1.5
+            ctx!.beginPath()
+            ctx!.moveTo(x,                    y + CELL_SIZE * 2 / 3)
+            ctx!.lineTo(x + CELL_SIZE * 2 / 3, y)
+            ctx!.moveTo(x,                    y + CELL_SIZE)
+            ctx!.lineTo(x + CELL_SIZE,         y)
+            ctx!.moveTo(x + CELL_SIZE / 3,    y + CELL_SIZE)
+            ctx!.lineTo(x + CELL_SIZE,         y + CELL_SIZE / 3)
             ctx!.stroke()
           } else if (isPreview) {
             const { paintSlot = 0, colorMap: cm } = optionsRef.current
@@ -162,7 +182,7 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
 
     drawRef.current = draw
     draw()
-  }, [cols, rows, cells, colorMap, inactiveCells, rowSkipAnnotations, labelWidth])
+  }, [cols, rows, cells, colorMap, inactiveCells, decreasedCells, rowSkipAnnotations, labelWidth])
 
   // Pointer event handling
   useEffect(() => {
@@ -172,7 +192,7 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
     let isDragging = false
     let lineStart: { row: number; col: number } | null = null
 
-    function getCell(e: PointerEvent): { row: number; col: number } | null {
+    function getCell(e: PointerEvent, allowDecreased = false): { row: number; col: number } | null {
       const rect = canvas!.getBoundingClientRect()
       const scaleX = canvas!.width / rect.width
       const scaleY = canvas!.height / rect.height
@@ -182,12 +202,19 @@ export function useCanvasGrid(options: UseCanvasGridOptions): RefObject<HTMLCanv
       const row = pixelToGridRow(y, rows)
       if (row < 0 || row >= rows || col < 0 || col >= cols) return null
       if (inactiveCells?.has(`${row + 1},${col + 1}`)) return null
+      if (!allowDecreased && optionsRef.current.decreasedCells?.has(`${row + 1},${col + 1}`)) return null
       return { row, col }
     }
 
     function onPointerDown(e: PointerEvent) {
-      isDragging = true
       canvas!.setPointerCapture(e.pointerId)
+      const { editMode = 'pattern', onDecreaseToggle } = optionsRef.current
+      if (editMode === 'decreases') {
+        const cell = getCell(e, true)
+        if (cell) onDecreaseToggle?.(cell.row, cell.col)
+        return
+      }
+      isDragging = true
       const cell = getCell(e)
       if (!cell) return
       const { activeTool = 'freehand', onCellPaint, onStrokeStart } = optionsRef.current
